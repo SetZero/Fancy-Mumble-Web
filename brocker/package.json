@@ -1,0 +1,27 @@
+{
+  "name": "brocker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc -p .",
+    "fix": "gts fix",
+    "prepare": "npm.cmd run compile",
+    "pretest": "npm.cmd run compile",
+    "posttest": "npm.cmd run check"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/ws": "^6.0.4",
+    "ws": "^7.2.1"
+  },
+  "devDependencies": {
+    "gts": "^1.1.2",
+    "typescript": "~3.7.0",
+    "@types/node": "^10.0.3"
+  }
+}
