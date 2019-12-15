@@ -10,6 +10,8 @@ export class WebSocketClient {
         this.messageQueue = [];
 
         this.ws.addEventListener("open", () => { this.workOnQueue(); });
+        this.ws.addEventListener("message", (event) => { this.handleMessage(event); })
+        this.ws.addEventListener("close", () => {this.ready = false;});
     }
 
     sendMessage(message: string) {
@@ -18,6 +20,10 @@ export class WebSocketClient {
         } else {
             this.ws.send(message);
         }
+    }
+
+    handleMessage(event: MessageEvent) {
+        console.log("Got Message: %s", event.data);
     }
 
     private workOnQueue() {

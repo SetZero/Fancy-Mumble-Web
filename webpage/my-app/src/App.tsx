@@ -9,7 +9,7 @@ const App: React.FC = () => {
   return (
     <div className="App">
       <header className="App-header">
-        <ChatBox></ChatBox>
+        <ChatBox location="ws://localhost:8080"></ChatBox>
       </header>
     </div>
   );

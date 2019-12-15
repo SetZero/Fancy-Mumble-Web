@@ -11,6 +11,7 @@ class WebSocket {
             console.log("new connection");
             ws.on('message', (data) => {
                 console.log("Message: %s", data);
+                ws.send("ack");
             });
         });
     }

@@ -2,6 +2,7 @@ import React from 'react';
 import {WebSocketClient} from '../classes/WebSocketClient'
 
 interface ChatBoxProps {
+  location: string
 }
 interface ChatBoxState {
   value: string
@@ -13,7 +14,7 @@ export class ChatBox extends React.Component<ChatBoxProps, ChatBoxState> {
   constructor(props: ChatBoxProps) {
     super(props);
 
-    this.client = new WebSocketClient('ws://localhost:8080');
+    this.client = new WebSocketClient(this.props.location);
     this.state = {value: ''};
 
     this.handleChange = this.handleChange.bind(this);
