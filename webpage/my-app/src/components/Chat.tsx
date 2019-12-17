@@ -1,7 +1,8 @@
-import React, { ReactElement } from 'react';
+import React from 'react';
 import {WebSocketClient} from '../classes/WebSocketClient';
-import {ChatBoxProps, ChatBox} from './ChatBox';
-import { ChatMessageClass, ChatMessage } from './ChatMessage';
+import {ChatBox} from './ChatBox';
+import { ChatMessageClass } from './ChatMessage';
+import {Mumble} from "../classes/network/Mumble";
 
 interface ChatProps {
   location: string;
@@ -12,13 +13,13 @@ interface ChatState {
 }
 
 export class Chat extends React.Component<ChatProps, ChatState> {
-  private client: WebSocketClient;
   private childRef: React.RefObject<ChatBox> = React.createRef();
+  private mumbleConnection: Mumble;
 
   constructor(props: ChatProps) {
     super(props);
 
-    this.client = new WebSocketClient(this.props.location);
+    this.mumbleConnection = new Mumble(this.props.location);
     this.state = {value: '', username: 'Demo'};
 
     this.handleChange = this.handleChange.bind(this);
@@ -30,7 +31,8 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   }
 
   handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    this.client.sendMessage(this.state.value);
+    //this.client.sendMessage(this.state.value);
+    this.mumbleConnection.sendMessage(this.state.value);
     this.childRef.current?.addMessage(
       new ChatMessageClass(this.state.username, new Date(), (<p>{this.state.value}</p>))
     );

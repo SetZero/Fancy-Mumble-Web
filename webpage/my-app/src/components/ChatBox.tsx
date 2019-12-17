@@ -22,8 +22,8 @@ export class ChatBox extends React.Component<ChatBoxProps, ChatBoxState> {
     render() {
         let children = new Array<JSX.Element>();
 
-        this.state.messages.map((element) =>  {
-        children.push(<ChatMessage username={element.username} timestamp={element.timestamp.toUTCString()}>{element.message}</ChatMessage>);
+        this.state.messages.forEach((element) =>  {
+            children.push(<ChatMessage username={element.username} timestamp={element.timestamp.toUTCString()}>{element.message}</ChatMessage>);
         });
 
         return (
