@@ -32,7 +32,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     //this.client.sendMessage(this.state.value);
-    this.mumbleConnection.sendMessage(this.state.value);
+    this.mumbleConnection.getSender.sendMessage(this.state.value);
     this.childRef.current?.addMessage(
       new ChatMessageClass(this.state.username, new Date(), (<p>{this.state.value}</p>))
     );

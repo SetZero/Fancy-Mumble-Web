@@ -1,5 +1,4 @@
-import { Server } from 'ws';
 export declare class WebSocket {
-    wss: Server;
+    private wss;
     constructor(portnumber: number);
 }

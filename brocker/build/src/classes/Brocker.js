@@ -1,13 +1,31 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const net_1 = require("net");
+const tls_1 = require("tls");
 class Brocker {
     constructor(ip, port) {
-        this.client = new net_1.Socket();
-        this.client.connect(port, ip, () => {
-            console.log('Connected');
-            this.client.write('Hello, server! Love, Client.');
+        const options = {
+            // Necessary only if the server requires client certificate authentication.
+            //key: fs.readFileSync('client-key.pem'),
+            //cert: fs.readFileSync('client-cert.pem'),
+            // Necessary only if the server uses a self-signed certificate.
+            //ca: [ fs.readFileSync('server-cert.pem') ],
+            // Necessary only if the server's cert isn't for "localhost".
+            checkServerIdentity: () => undefined,
+            secureProtocol: "TLSv1_method",
+            rejectUnauthorized: false
+        };
+        this.socket = tls_1.connect(port, ip, options, () => {
+            console.log('client connected', this.socket.authorized ? 'authorized' : 'unauthorized');
         });
+        //this.socket.on("data", (data) => {
+        //    console.log("Data: ", data);
+        //})
+    }
+    repack(data) {
+        this.socket.write(data);
+    }
+    on(event, listener) {
+        this.socket.on(event, listener);
     }
 }
 exports.Brocker = Brocker;

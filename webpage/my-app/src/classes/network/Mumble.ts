@@ -1,56 +1,98 @@
 import { load } from "protobufjs";
 import { WebSocketClient } from "../WebSocketClient";
 import { NetworkMessage } from "./NetworkMessages";
+import {from16Bit, from32Bit, to16Bit, to32Bit} from "../helper/NetworkingHelper";
+import {MessageHolder} from "../helper/MessageHolder";
+import { MessageSender } from "./MessageSender";
 
 export class Mumble {
     private client: WebSocketClient;
+    private sender: MessageSender = new MessageSender(this);
+    private textMessageListener: Map<NetworkMessage, Array<(data: any) => void>> = new Map();
+    private networkQueue: Array<MessageHolder> = [];
+    private protobufRoot: any = undefined;
+
     constructor(location: string) {
         this.client = new WebSocketClient(location);
+        this.setup();
 
         load(require("./../../protos/Mumble.proto"))
         .then((root) => {
-            let myMessage = root.lookupType("MumbleProto.Version");
-            let payload = {
-                version: (1 << 6) | (3 << 8),
-                release: "1.3.0",
-                os: "WinDos",
-                osVersion: "11"
-            };
-
-            let errMsg = myMessage.verify(payload);
-            if (errMsg)
-             throw Error(errMsg);
-
-            var message = myMessage.create(payload);
-            var buffer = myMessage.encode(message).finish();
-            let versionMsgType = NetworkMessage.Version.valueOf();
-            let length = buffer.length;
-            console.log(buffer);
-            //TODO: build message
-            let msg = new Uint8Array(2 + 4 + length);
-            //msg.set(this.to16Bit(versionMsgType), 0)
+            this.networkQueue.forEach(element => {
+                this.sendMessage(root, element.messageType, element.message);
+            });
+            this.protobufRoot = root;
         })
         .catch((error) => {
-            console.log("ERROR!");
             throw error;
+        });
+        this.client.addMessageListener((msg) => this.messageListener(msg));
+        this.on(NetworkMessage.Version, (data) => console.log("Version Length:", data));
+    }
+
+    get getSender() {
+        return this.sender;
+    }
+
+    private setup() {
+        this.addToQueue(NetworkMessage.Version, {
+            version: (1 << 16) | (3 << 8),
+            release: "1.3.0",
+            os: "WinDOS",
+            osVersion: "11"
+        });
+
+        this.addToQueue(NetworkMessage.Authenticate, {
+                username: "WebTest",
+                opus: true,
+                celt_versions: [-2147483637, -2147483632]
         });
     }
 
-    private to16Bit(num: number) {
-        let arr = new ArrayBuffer(2); // an Uint16 takes 4 bytes
-        let view = new DataView(arr);
-        view.setUint16(0, num, false);
-        return arr;
+    public addToQueue(type: NetworkMessage, data: any) {
+        if(this.protobufRoot === undefined) {
+            this.networkQueue.push(new MessageHolder(type, data));
+        } else {
+            this.sendMessage(this.protobufRoot, type, data);
+        }
     }
 
-    private to32Bit(num: number) {
-        let arr = new ArrayBuffer(4); // an Int32 takes 4 bytes
-        let view = new DataView(arr);
-        view.setUint32(0, num, false); // byteOffset = 0; litteEndian = false
-        return arr;
+    private sendMessage(root: any, type: NetworkMessage, payload: any) {
+        let myMessage = root.lookupType("MumbleProto." + NetworkMessage[type]);
+
+        let errMsg = myMessage.verify(payload);
+        if (errMsg)
+            throw Error(errMsg);
+        var message = myMessage.create(payload);
+        var buffer = myMessage.encode(message).finish();
+
+        this.setUpSend(type, buffer);
     }
 
-    sendMessage(value: string) {
-        throw new Error("Method not implemented.");
+    private setUpSend(type: NetworkMessage, buffer: Uint8Array) {
+        let versionMsgType = type.valueOf();
+        let length = buffer.length;
+
+        let msg = new Uint8Array(2 + 4 + length);
+        msg.set(to16Bit(versionMsgType), 0);
+        msg.set(to32Bit(length), 2);
+        msg.set(buffer, 6);
+
+        console.log(to32Bit(length));
+
+        this.client.sendMessage(msg);
+    }
+
+    private messageListener(msg: ArrayBuffer) {
+        const typeNum = from16Bit(msg.slice(0, 2));
+        const type: NetworkMessage = (NetworkMessage as any)[typeNum];
+        const size = from32Bit(msg.slice(2, 6));
+
+        this.textMessageListener.get(typeNum)?.forEach(element => element(size));
+    }
+
+    public on(type: NetworkMessage, messageListener: ((msg: any) => void)) {
+        if(!this.textMessageListener.has(type)) this.textMessageListener.set(type, []);
+        this.textMessageListener.get(type)?.push(messageListener);
     }
 }

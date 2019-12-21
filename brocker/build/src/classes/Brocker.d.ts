@@ -1,6 +1,8 @@
 /// <reference types="node" />
-import { Socket } from 'net';
+import { TLSSocket } from 'tls';
 export declare class Brocker {
-    client: Socket;
+    socket: TLSSocket;
     constructor(ip: string, port: number);
+    repack(data: import("ws").Data): void;
+    on(event: string, listener: (...args: any[]) => void): void;
 }
