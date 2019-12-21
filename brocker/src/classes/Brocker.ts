@@ -2,7 +2,7 @@ import {Socket} from 'net';
 import {connect, TLSSocket} from 'tls';
 
 export class Brocker {
-    socket: TLSSocket;
+  private socket: TLSSocket;
   constructor(ip: string, port: number) {
       const options = {
         // Necessary only if the server requires client certificate authentication.
@@ -33,5 +33,9 @@ export class Brocker {
 
   on(event: string, listener: (...args: any[]) => void) {
     this.socket.on(event, listener);
+  }
+
+  close() {
+    this.socket.destroy();
   }
 }

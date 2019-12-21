@@ -4,6 +4,7 @@ import { NetworkMessage } from "./NetworkMessages";
 import {from16Bit, from32Bit, to16Bit, to32Bit} from "../helper/NetworkingHelper";
 import {MessageHolder} from "../helper/MessageHolder";
 import { MessageSender } from "./MessageSender";
+import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync} from "../../generated/Mumble_pb";
 
 export class Mumble {
     private client: WebSocketClient;
@@ -11,6 +12,7 @@ export class Mumble {
     private textMessageListener: Map<NetworkMessage, Array<(data: any) => void>> = new Map();
     private networkQueue: Array<MessageHolder> = [];
     private protobufRoot: any = undefined;
+    private mySessionID: number | undefined;
 
     constructor(location: string) {
         this.client = new WebSocketClient(location);
@@ -27,11 +29,19 @@ export class Mumble {
             throw error;
         });
         this.client.addMessageListener((msg) => this.messageListener(msg));
-        this.on(NetworkMessage.Version, (data) => console.log("Version Length:", data));
+        this.on(NetworkMessage.Version, (data) => console.log("Version", (data as Version).getOsVersion()));
+        this.on(NetworkMessage.CryptSetup, (data) => console.log("Crypt", (data as CryptSetup).getKey()));
+        this.on(NetworkMessage.ChannelState, (data) => console.log("Channel %s (%d)", (data as ChannelState).getName(), (data as ChannelState).getChannelId()));
+        this.on(NetworkMessage.UserState, (data) => console.log("User: %s (%d)", (data as UserState).getName(), (data as UserState).getSession()));
+        this.on(NetworkMessage.ServerSync, (data) => { this.mySessionID = (data as ServerSync).getSession(); });
     }
 
     get getSender() {
         return this.sender;
+    }
+
+    get getSessionID() {
+        return this.mySessionID;
     }
 
     private setup() {
@@ -69,7 +79,7 @@ export class Mumble {
         this.setUpSend(type, buffer);
     }
 
-    private setUpSend(type: NetworkMessage, buffer: Uint8Array) {
+    public setUpSend(type: NetworkMessage, buffer: Uint8Array) {
         let versionMsgType = type.valueOf();
         let length = buffer.length;
 
@@ -87,8 +97,28 @@ export class Mumble {
         const typeNum = from16Bit(msg.slice(0, 2));
         const type: NetworkMessage = (NetworkMessage as any)[typeNum];
         const size = from32Bit(msg.slice(2, 6));
+        const buffer = msg.slice(6, 6 + size);
+        if(type === undefined) {console.log("Ups...", msg.byteLength)}
+        let data: any = undefined
+        switch(typeNum) {
+            case NetworkMessage.Version:
+                data = Version.deserializeBinary(new Uint8Array(buffer));
+                break;
+            case NetworkMessage.CryptSetup:
+                data = CryptSetup.deserializeBinary(new Uint8Array(buffer));
+                break;
+            case NetworkMessage.ChannelState:
+                data = ChannelState.deserializeBinary(new Uint8Array(buffer));
+                break;
+            case NetworkMessage.UserState:
+                data = UserState.deserializeBinary(new Uint8Array(buffer));
+                break;
+            case NetworkMessage.ServerSync:
+                data = ServerSync.deserializeBinary(new Uint8Array(buffer));
+                break;
+        }
 
-        this.textMessageListener.get(typeNum)?.forEach(element => element(size));
+        this.textMessageListener.get(typeNum)?.forEach(element => element(data));
     }
 
     public on(type: NetworkMessage, messageListener: ((msg: any) => void)) {

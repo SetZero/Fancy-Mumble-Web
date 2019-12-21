@@ -27,6 +27,9 @@ class Brocker {
     on(event, listener) {
         this.socket.on(event, listener);
     }
+    close() {
+        this.socket.destroy();
+    }
 }
 exports.Brocker = Brocker;
 //# sourceMappingURL=Brocker.js.map
