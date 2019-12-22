@@ -21,13 +21,11 @@ export class MessageSender {
 
     public sendMessage(message: string) {
         console.log("ID: %s", this.sender.getSessionID);
-        if(this.sender.getSessionID != undefined) {
-
-
+        if(this.sender.getSessionID !== undefined) {
             let tm = new TextMessage();
             tm.setMessage(message);
             tm.setActor(this.sender.getSessionID);
-            tm.setSessionList([20]);
+            tm.setSessionList([172]); //1069
             this.sender.setUpSend(NetworkMessage.TextMessage, tm.serializeBinary());
         }
     }

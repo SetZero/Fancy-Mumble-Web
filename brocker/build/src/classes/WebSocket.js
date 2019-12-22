@@ -9,11 +9,8 @@ class WebSocket {
         this.wss = new ws_1.Server({ port: portnumber });
         this.wss.on('connection', (ws) => {
             console.log("new connection");
-            const brocker = new Brocker_1.Brocker("localhost", 64738);
-            ws.on('message', (data) => {
-                console.log(data);
-                brocker.repack(data);
-            });
+            const brocker = new Brocker_1.Brocker("nooblounge.net", 64738);
+            ws.on('message', (data) => brocker.repack(data));
             brocker.on("data", (data) => {
                 const buf = Buffer.from(data);
                 //console.log("Expected (%d): %d, Real: %d", type, size, buf.byteLength);
@@ -27,10 +24,14 @@ class WebSocket {
                         //console.log("Expected (%d): %d, Real: %d / %d", type, size, position, buf.byteLength);
                     }
                     else {
-                        //ws.send(buf.slice(position, buf.byteLength));
+                        //TODO: Fix me
+                        //ws.send(buf.slice(position, buf.byteLength - position));
                         break;
                     }
                 }
+            });
+            brocker.on('uncaughtException', (err) => {
+                console.log(err);
             });
             ws.on('close', () => {
                 brocker.close();
