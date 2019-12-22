@@ -30,7 +30,7 @@ export class WebSocket {
 
                 if(tmpBufferLoops === undefined || tmpBufferLoops <= 0){
                     while(position < buf.byteLength) {
-                        const type = from16Bit(buf.slice(position, position + 2));
+                        //const type = from16Bit(buf.slice(position, position + 2));
                         const size = from32Bit(buf.slice(position + 2, position + 6)) + 6;
                         if(size <= buf.byteLength) {
                             ws.send(buf.slice(position, position + size));
