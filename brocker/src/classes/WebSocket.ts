@@ -13,21 +13,36 @@ export class WebSocket {
 
             const brocker = new Brocker("nooblounge.net", 64738);
             ws.on('message', (data) =>  brocker.repack(data));
+            let tmpBufferLoops: number | undefined = undefined;
             brocker.on("data", (data) => {
                 const buf = Buffer.from(data);
-                //console.log("Expected (%d): %d, Real: %d", type, size, buf.byteLength);
                 let position = 0;
-                while(position < buf.byteLength) {
-                    const type = from16Bit(buf.slice(position, position + 2));
-                    const size = from32Bit(buf.slice(position + 2, position + 6)) + 6;
-                    if(size <= buf.byteLength) {
-                        ws.send(buf.slice(position, position + size));
-                        position += size;
-                        //console.log("Expected (%d): %d, Real: %d / %d", type, size, position, buf.byteLength);
-                    } else {
-                        //TODO: Fix me
-                        //ws.send(buf.slice(position, buf.byteLength - position));
-                        break;
+
+                if(tmpBufferLoops !== undefined && tmpBufferLoops > 0) {
+                    brocker.addToBuffer(buf.slice(0, Math.min(tmpBufferLoops, buf.byteLength)));
+                    tmpBufferLoops -= buf.byteLength;
+                    if(tmpBufferLoops <= 0) {
+                        ws.send(brocker.flushBuffer());
+                        position = buf.byteLength + tmpBufferLoops;
+                        tmpBufferLoops = undefined;
+                    }
+                }
+
+                if(tmpBufferLoops === undefined || tmpBufferLoops <= 0){
+                    while(position < buf.byteLength) {
+                        const type = from16Bit(buf.slice(position, position + 2));
+                        const size = from32Bit(buf.slice(position + 2, position + 6)) + 6;
+                        if(size <= buf.byteLength) {
+                            ws.send(buf.slice(position, position + size));
+                            position += size;
+                        } else {
+                            if(tmpBufferLoops === undefined) {
+                                tmpBufferLoops = size - (buf.byteLength - position);
+                                brocker.initBuffer(size);
+                                brocker.addToBuffer(buf.slice(position, buf.byteLength));
+                                break;
+                            }
+                        }
                     }
                 }
             });

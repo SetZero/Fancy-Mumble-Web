@@ -21,7 +21,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   constructor(props: ChatProps) {
     super(props);
 
-    this.state = {value: 'A', location: 'B', username: 'C'};
+    this.state = {value: '', location: '', username: ''};
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }

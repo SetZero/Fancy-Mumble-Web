@@ -21,6 +21,23 @@ class Brocker {
         //    console.log("Data: ", data);
         //})
     }
+    initBuffer(size) {
+        //this.tmpBuffer = Buffer.alloc(size);
+    }
+    addToBuffer(content) {
+        if (this.tmpBuffer !== undefined) {
+            this.tmpBuffer = Buffer.concat([this.tmpBuffer, content]);
+        }
+        else {
+            this.initBuffer(content.byteLength);
+            this.tmpBuffer = content;
+        }
+    }
+    flushBuffer() {
+        const tmp = this.tmpBuffer;
+        this.tmpBuffer = undefined;
+        return tmp;
+    }
     repack(data) {
         this.socket.write(data);
     }

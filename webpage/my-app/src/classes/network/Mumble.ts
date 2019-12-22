@@ -20,7 +20,7 @@ export class Mumble {
         this.on(NetworkMessage.ChannelState, (data) => console.log("Channel %s (%d)", (data as ChannelState).getName(), (data as ChannelState).getChannelId()));
         this.on(NetworkMessage.UserState, (data) => console.log("User: %s (%d)", (data as UserState).getName(), (data as UserState).getSession()));
         this.on(NetworkMessage.ServerSync, (data) => { this.mySessionID = (data as ServerSync).getSession(); });
-        this.on(NetworkMessage.TextMessage, (data) => { console.log((data as TextMessage).getMessage()); });
+        //this.on(NetworkMessage.TextMessage, (data) => { console.log((data as TextMessage).getMessage()); });
     }
 
     get getSender() {

@@ -3,6 +3,7 @@ import {connect, TLSSocket} from 'tls';
 
 export class Brocker {
   private socket: TLSSocket;
+  private tmpBuffer: Buffer | undefined;
   constructor(ip: string, port: number) {
       const options = {
         // Necessary only if the server requires client certificate authentication.
@@ -25,17 +26,36 @@ export class Brocker {
       //this.socket.on("data", (data) => {
       //    console.log("Data: ", data);
       //})
-  }
+    }
 
-  repack(data: import("ws").Data): void {
-    this.socket.write(data);
-  }
+    initBuffer(size: number) {
+      //this.tmpBuffer = Buffer.alloc(size);
+    }
 
-  on(event: string, listener: (...args: any[]) => void) {
-    this.socket.on(event, listener);
-  }
+    addToBuffer(content: Buffer) {
+      if(this.tmpBuffer !== undefined) {
+        this.tmpBuffer = Buffer.concat([this.tmpBuffer, content]);
+      } else {
+        this.initBuffer(content.byteLength);
+        this.tmpBuffer = content;
+      }
+    }
 
-  close() {
-    this.socket.destroy();
-  }
+    flushBuffer() {
+      const tmp = this.tmpBuffer;
+      this.tmpBuffer = undefined;
+      return tmp;
+    }
+
+    repack(data: import("ws").Data): void {
+      this.socket.write(data);
+    }
+
+    on(event: string, listener: (...args: any[]) => void) {
+      this.socket.on(event, listener);
+    }
+
+    close() {
+      this.socket.destroy();
+    }
 }
