@@ -36,7 +36,8 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     this.handleSubmit = this.handleSubmit.bind(this);
     this.mumbleConnection.on(NetworkMessage.TextMessage, (data) => {
       let message = (data as TextMessage);
-      this.addMessage(message.getActor()?.toString(), new Date(), message.getMessage())
+      let username = this.mumbleConnection?.getUserById(message.getActor() as number)?.$username;
+      this.addMessage(username, new Date(), message.getMessage())
     });
   }
 
@@ -53,7 +54,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     //this.client.sendMessage(this.state.value);
-    this.mumbleConnection?.getSender.sendMessage(this.state.value);
+    this.mumbleConnection?.sendMessage(this.state.value);
     this.addMessage(this.state.username, new Date(), this.state.value);
     event.preventDefault();
   }

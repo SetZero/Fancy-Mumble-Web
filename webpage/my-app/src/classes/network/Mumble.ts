@@ -1,34 +1,67 @@
 import { WebSocketClient } from "../WebSocketClient";
 import { NetworkMessage } from "./NetworkMessages";
 import {from16Bit, from32Bit, to16Bit, to32Bit} from "../helper/NetworkingHelper";
-import { MessageSender } from "./MessageSender";
-import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync, TextMessage} from "../../generated/Mumble_pb";
+import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync, TextMessage, Ping} from "../../generated/Mumble_pb";
+import { User } from "./User";
+import { UserInfo } from "os";
 
 export class Mumble {
     private client: WebSocketClient;
-    private sender: MessageSender = new MessageSender(this);
     private serverMessageListener: Map<NetworkMessage, Array<(data: any) => void>> = new Map();
     private mySessionID: number | undefined;
+    private userList: Map<number, User> = new Map();
 
     constructor(location: string, username: string) {
         this.client = new WebSocketClient(location);
         this.setup(username);
+        this.initPing()
 
         this.client.addMessageListener((msg) => this.messageListener(msg));
-        this.on(NetworkMessage.Version, (data) => console.log("Version", (data as Version).getOsVersion()));
-        this.on(NetworkMessage.CryptSetup, (data) => console.log("Crypt", (data as CryptSetup).getKey()));
+        //this.on(NetworkMessage.Version, (data) => console.log("Version", (data as Version).getOsVersion()));
+        //this.on(NetworkMessage.CryptSetup, (data) => console.log("Crypt", (data as CryptSetup).getKey()));
         this.on(NetworkMessage.ChannelState, (data) => console.log("Channel %s (%d)", (data as ChannelState).getName(), (data as ChannelState).getChannelId()));
-        this.on(NetworkMessage.UserState, (data) => console.log("User: %s (%d)", (data as UserState).getName(), (data as UserState).getSession()));
+        this.on(NetworkMessage.UserState, (data) => this.manageUsers(data as UserState));
         this.on(NetworkMessage.ServerSync, (data) => { this.mySessionID = (data as ServerSync).getSession(); });
         //this.on(NetworkMessage.TextMessage, (data) => { console.log((data as TextMessage).getMessage()); });
     }
 
-    get getSender() {
-        return this.sender;
-    }
-
     get getSessionID() {
         return this.mySessionID;
+    }
+
+    private manageUsers(userInfo: UserState): void {
+        const id = userInfo.getSession();
+        if(id !== undefined) {
+            const user = this.userList.get(id);
+            if(user !== undefined) {
+                this.modifyUser(user, userInfo);
+            } else if(userInfo.getName() !== undefined && userInfo.getChannelId() !== undefined) {
+                let user = new User(id, userInfo.getName() as string, userInfo.getChannelId() as number);
+                this.modifyUser(user, userInfo);
+                this.userList.set(id, user);
+            }
+        }
+    }
+
+    private modifyUser(user: User, userInfo: UserState) {
+        if(userInfo.getMute() !== undefined) user.$mute = userInfo.getMute() as boolean;
+        if(userInfo.getDeaf() !== undefined) user.$deaf = userInfo.getDeaf() as boolean;
+        if(userInfo.getSelfMute() !== undefined) user.$selfMute = userInfo.getSelfMute() as boolean;
+        if(userInfo.getSelfDeaf() !== undefined) user.$selfDeaf = userInfo.getSelfDeaf() as boolean;
+        if(userInfo.getChannelId() !== undefined) user.$channel = userInfo.getChannelId() as number;
+    }
+
+    public getUserById(id: number) {
+        return this.userList.get(id);
+    }
+
+    public getUserByName(name: string): User | undefined {
+        const user = Array.from(this.userList).find( (entry) => entry[1].$username === name);
+        return user !== undefined ? user[1] : undefined;
+    }
+
+    private initPing() {
+        setInterval(() =>  this.sendPing(), 15000);
     }
 
     private setup(username: string) {
@@ -55,9 +88,27 @@ export class Mumble {
         msg.set(to32Bit(length), 2);
         msg.set(buffer, 6);
 
-        console.log(to32Bit(length));
-
         this.client.sendMessage(msg);
+    }
+
+    private sendPing() {
+        let ping = new Ping()
+        ping.setTimestamp(Math.floor(Date.now() / 1000));
+        this.setUpSend(NetworkMessage.Ping, ping.serializeBinary());
+    }
+
+    public sendMessage(message: string) {
+        console.log("ID: %s", this.getSessionID);
+        if(this.getSessionID !== undefined) {
+            let userB = this.getUserByName("NoNoN");
+            if(userB) {
+                let tm = new TextMessage();
+                tm.setMessage(message);
+                tm.setActor(this.getSessionID);
+                tm.setSessionList([userB.$userID]); //1069
+                this.setUpSend(NetworkMessage.TextMessage, tm.serializeBinary());
+            }
+        }
     }
 
     private messageListener(msg: ArrayBuffer) {
