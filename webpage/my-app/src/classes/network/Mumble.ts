@@ -11,7 +11,7 @@ export class Mumble {
     private serverMessageListener: Map<NetworkMessage, Array<(data: any) => void>> = new Map();
 
     private readonly channelListener = new LiteEvent<void>();
-    private readonly textListener = new LiteEvent<TextMessage>(); 
+    private readonly textListener = new LiteEvent<TextMessage>();
 
     private mySessionID: number | undefined;
     private userList: Map<number, User> = new Map();
@@ -37,7 +37,7 @@ export class Mumble {
             if(channel !== undefined) {
                 //TODO!
             } else {
-                let channel = new Channel(id, channelInfo.getName() as string);
+                let channel = new Channel(id, channelInfo.getName() as string, this);
                 this.channelList.set(id, channel);
             }
         }
@@ -61,6 +61,14 @@ export class Mumble {
 		return this.channelList;
 	}
 
+
+    /**
+     * Getter $mySessionID
+     * @return {number }
+     */
+	public get $mySessionID() {
+		return this.mySessionID;
+	}
 
     private manageUsers(userInfo: UserState): void {
         const id = userInfo.getSession();
@@ -168,10 +176,9 @@ export class Mumble {
 
     private messageListener(msg: ArrayBuffer) {
         const typeNum = from16Bit(msg.slice(0, 2));
-        const type: NetworkMessage = (NetworkMessage as any)[typeNum];
+        //const type: NetworkMessage = (NetworkMessage as any)[typeNum];
         const size = from32Bit(msg.slice(2, 6));
         const buffer = msg.slice(6, 6 + size);
-        if(type === undefined) {console.log("Ups...", msg.byteLength)}
         let data: any = undefined
         switch(typeNum) {
             case NetworkMessage.Version:

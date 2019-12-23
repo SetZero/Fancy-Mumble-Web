@@ -1,16 +1,30 @@
 import {User} from "./User"
+import { UserState } from "../../generated/Mumble_pb";
+import { Mumble } from "./Mumble";
+import { NetworkMessage } from "./NetworkMessages";
 
 export class Channel {
+    private readonly id: number;
+    private readonly mumbleConnection: Mumble;
     private users: Array<User> = [];
-    private id: number;
     private name: string;
 
 
-	constructor(id: number, name: string) {
+	constructor(id: number, name: string, mumbleConnection: Mumble) {
         this.id = id;
         this.name = name;
+        this.mumbleConnection = mumbleConnection;
 	}
 
+    public join() {
+        let state = new UserState();
+        let myID = this.mumbleConnection.$mySessionID;
+        if(myID) {
+            state.setChannelId(this.$id);
+            state.setActor(myID);
+            this.mumbleConnection.setUpSend(NetworkMessage.UserState, state.serializeBinary());
+        }
+    }
 
     /**
      * Getter $users
@@ -42,14 +56,6 @@ export class Channel {
      */
 	public set $users(value: Array<User> ) {
 		this.users = value;
-	}
-
-    /**
-     * Setter $id
-     * @param {number} value
-     */
-	public set $id(value: number) {
-		this.id = value;
 	}
 
     /**
