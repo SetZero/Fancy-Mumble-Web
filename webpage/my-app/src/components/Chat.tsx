@@ -3,8 +3,8 @@ import DOMPurify from 'dompurify';
 import {ChatBox} from './ChatBox';
 import { ChatMessageClass } from './ChatMessage';
 import {Mumble} from "../classes/network/Mumble";
-import { NetworkMessage } from '../classes/network/NetworkMessages';
 import { TextMessage } from '../generated/Mumble_pb';
+import { ChannelViewer } from './ChannelViewer';
 
 interface ChatProps {
 }
@@ -17,6 +17,7 @@ interface ChatState {
 export class Chat extends React.Component<ChatProps, ChatState> {
   private childRef: React.RefObject<ChatBox> = React.createRef();
   private mumbleConnection: Mumble | undefined;
+  private channelViewerRef: React.RefObject<ChannelViewer> = React.createRef();
 
   constructor(props: ChatProps) {
     super(props);
@@ -34,11 +35,14 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-    this.mumbleConnection.on(NetworkMessage.TextMessage, (data) => {
+    this.mumbleConnection.textMessage.on((data) => {
       let message = (data as TextMessage);
       let username = this.mumbleConnection?.getUserById(message.getActor() as number)?.$username;
       this.addMessage(username, new Date(), message.getMessage())
     });
+    if(this.channelViewerRef.current) {
+      this.channelViewerRef.current.$mumbleConnection = this.mumbleConnection;
+    }
   }
 
   handleChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -62,6 +66,9 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     return (
       <div className="chat">
         <p>Chat</p>
+        <div className="channel-list">
+        <ChannelViewer ref={this.channelViewerRef}></ChannelViewer>
+        </div>
         {this.props.children}
         <ChatBox ref={this.childRef}>
         </ChatBox>

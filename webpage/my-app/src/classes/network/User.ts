@@ -9,7 +9,7 @@ export class User {
     private recording: boolean = false;
     private selfDeaf: boolean = false;
     private selfMute: boolean = false;
-    private session: string = "";
+    private session: number = -1;
     private supress: boolean = false;
 
     constructor(id: number, username: string, channel: number) {
@@ -102,7 +102,7 @@ export class User {
      * Getter $session
      * @return {string}
      */
-	public get $session(): string {
+	public get $session(): number {
 		return this.session;
 	}
 
@@ -198,7 +198,7 @@ export class User {
      * Setter $session
      * @param {string} value
      */
-	public set $session(value: string) {
+	public set $session(value: number) {
 		this.session = value;
 	}
 
