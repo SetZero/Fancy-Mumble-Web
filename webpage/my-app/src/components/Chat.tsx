@@ -44,6 +44,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleHTMLInput = this.handleHTMLInput.bind(this);
+    this.pasteListener = this.pasteListener.bind(this);
 
     this.mumbleConnection.textMessage.on((data) => {
       let message = (data as TextMessage);
@@ -62,12 +63,30 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   checkSend(event: React.KeyboardEvent<HTMLDivElement>) {
     if(event.shiftKey) {
       if(event.key === "Enter") {
-        this.formRef.current?.dispatchEvent(new Event('submit'))
+        this.formRef.current?.dispatchEvent(new Event('submit', { cancelable: true }));
         event.preventDefault();
       }
     }
   }
 
+  pasteListener(event: React.ClipboardEvent<HTMLDivElement>) {
+    event.persist();
+    if(event.clipboardData.files.length > 0 && !event.clipboardData.types.includes("text/html")) {
+      console.log(event.clipboardData.files);
+      Array.from(event.clipboardData.files).forEach((file) => {
+        var reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function () {
+          const img: HTMLImageElement = document.createElement("img");
+          img.setAttribute("src", reader.result as string);
+          console.log(img);
+          (event.target as HTMLDivElement).appendChild(img);
+          event.preventDefault();
+        }
+      });
+   };
+
+  }
 
   handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({value: event.target.value});
@@ -106,7 +125,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
               <Col lg="12">
                 <form onSubmit={this.handleSubmit} ref={this.formRef}>
                   <Form.Control onChange={this.handleChange} value={this.state.value} hidden/>
-                  <ContentEditable html={DOMPurify.sanitize(this.state.value)} onChange={this.handleHTMLInput} className="form-control input-box" onKeyPressCapture={this.checkSend}/>
+                  <ContentEditable html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => this.pasteListener(e)} onChange={this.handleHTMLInput} className="form-control input-box" onKeyPressCapture={this.checkSend}/>
                 </form>
               </Col>
             </Row>

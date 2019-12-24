@@ -24,9 +24,23 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
         this.setState({username: event.target.value});
     }
 
+    private buildWebSocketURI() {
+        let loc = window.location, new_uri;
+        if (loc.protocol === "https:") {
+            new_uri = "wss:";
+        } else {
+            new_uri = "ws:";
+        }
+        new_uri += "//" + loc.hostname;
+        new_uri += ":8080" + loc.pathname;
+        console.log(new_uri)
+        return new_uri;
+    }
+
     private handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
         ReactDOM.render(<Chat ref={this.chatRef}></Chat>, document.getElementById('chatWrapper'));
-        this.chatRef.current?.connect("ws://localhost:8080", this.state.username);
+        this.chatRef.current?.connect(this.buildWebSocketURI(), this.state.username);
         const loginElement = document.getElementById("loginWrapper")
         if(loginElement !== null) {
             loginElement.style.display = "none";
@@ -35,7 +49,6 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
         //ReactDOM.render(<Chat ref={this.chatRef}></Chat>, this.wrapper);
         //this.wrapper.current?.insertAdjacentElement('afterbegin', <Chat ref={this.chatRef}></Chat>));
         //this.wrapper.current?.insertBefore(<Chat ref={this.chatRef}></Chat>)
-        event.preventDefault();
     }
 
     render() {
