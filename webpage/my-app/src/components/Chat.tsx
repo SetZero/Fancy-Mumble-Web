@@ -23,6 +23,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   private childRef: React.RefObject<ChatBox> = React.createRef();
   private mumbleConnection: Mumble | undefined;
   private channelViewerRef: React.RefObject<ChannelViewer> = React.createRef();
+  private formRef: React.RefObject<HTMLFormElement> = React.createRef();
 
   constructor(props: ChatProps) {
     super(props);
@@ -30,6 +31,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     this.state = {value: '', location: '', username: ''};
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.checkSend = this.checkSend.bind(this);
     this.handleHTMLInput = this.handleHTMLInput.bind(this);
   }
 
@@ -55,11 +57,21 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   handleHTMLInput(event: ContentEditableEvent) {
     this.setState({value: event.target.value.toString()});
-    console.log(event.target.value.toString());
   }
+
+  checkSend(event: React.KeyboardEvent<HTMLDivElement>) {
+    if(event.shiftKey) {
+      if(event.key === "Enter") {
+        this.formRef.current?.dispatchEvent(new Event('submit'))
+        event.preventDefault();
+      }
+    }
+  }
+
 
   handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({value: event.target.value});
+    event.preventDefault();
   }
 
   addMessage(username: string = "unknown", date: Date = new Date(), message: string = "") {
@@ -92,10 +104,10 @@ export class Chat extends React.Component<ChatProps, ChatState> {
             </Row>
             <Row>
               <Col lg="12">
-                <Form onSubmit={this.handleSubmit}>
-                  <Form.Control onChange={this.handleChange} value={this.state.value}/>
-                  <ContentEditable html={DOMPurify.sanitize(this.state.value)} onChange={this.handleHTMLInput} className="form-control"/>
-                </Form>
+                <form onSubmit={this.handleSubmit} ref={this.formRef}>
+                  <Form.Control onChange={this.handleChange} value={this.state.value} hidden/>
+                  <ContentEditable html={DOMPurify.sanitize(this.state.value)} onChange={this.handleHTMLInput} className="form-control input-box" onKeyPressCapture={this.checkSend}/>
+                </form>
               </Col>
             </Row>
           </Col>
