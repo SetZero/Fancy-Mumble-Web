@@ -3,6 +3,7 @@ import {  } from './components/ChatBox';
 import './App.css';
 import {  } from './components/ChatMessage';
 import { Connect } from './components/Connect';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 

@@ -1,7 +1,7 @@
 import { WebSocketClient } from "../WebSocketClient";
 import { NetworkMessage } from "./NetworkMessages";
 import {from16Bit, from32Bit, to16Bit, to32Bit} from "../helper/NetworkingHelper";
-import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync, TextMessage, Ping} from "../../generated/Mumble_pb";
+import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync, TextMessage, Ping, UserRemove} from "../../generated/Mumble_pb";
 import { User } from "./User";
 import { Channel } from "./Channel";
 import { LiteEvent } from "../helper/EventHandler";
@@ -24,13 +24,13 @@ export class Mumble {
 
         this.client.addMessageListener((msg) => this.messageListener(msg));
 
-        this.on(NetworkMessage.ChannelState, (data) => this.manageChannels(data as UserState));
+        this.on(NetworkMessage.ChannelState, (data) => this.manageChannels(data as ChannelState));
         this.on(NetworkMessage.UserState, (data) => this.manageUsers(data as UserState));
         this.on(NetworkMessage.ServerSync, (data) => { this.mySessionID = (data as ServerSync).getSession(); });
         this.on(NetworkMessage.TextMessage, (data) => {this.textListener.trigger(data)});
+        this.on(NetworkMessage.UserRemove, (data) => {this.manageLeave(data as UserRemove)});
     }
-
-    manageChannels(channelInfo: UserState): void {
+    manageChannels(channelInfo: ChannelState): void {
         const id = channelInfo.getChannelId();
         if(id !== undefined) {
             const channel = this.channelList.get(id);
@@ -70,6 +70,21 @@ export class Mumble {
 		return this.mySessionID;
 	}
 
+    manageLeave(userInfo: UserRemove) {
+        const id = userInfo.getSession();
+        if(id !== undefined) {
+            const user = this.userList.get(id);
+            if(user !== undefined) {
+                const channel = this.channelList.get(user.$channel);
+                if(channel !== undefined) {
+                    channel.$users = channel.$users.filter((u) => u.$session !== user.$session);
+                }
+                this.userList.delete(id);
+                this.channelListener.trigger();
+            }
+        }
+    }
+
     private manageUsers(userInfo: UserState): void {
         const id = userInfo.getSession();
         if(id !== undefined) {
@@ -90,25 +105,25 @@ export class Mumble {
     }
 
     private updateChannels(oldUserInfo: User, newUserInfo: UserState) {
-        const channels = this.channelList.get(oldUserInfo.$channel);
-        if(channels !== undefined) {
-            channels.$users = channels.$users.filter((user) => user.$session !== newUserInfo.getSession());
+        const userChannel = newUserInfo.toObject().channelId;
+        if(userChannel !== undefined) {
+            const channels = this.channelList.get(oldUserInfo.$channel);
+            if(channels !== undefined) {
+                channels.$users = channels.$users.filter((user) => user.$session !== newUserInfo.getSession());
+            }
+                const channel = this.channelList.get(userChannel);
+                channel?.$users.push(oldUserInfo);
+            this.channelListener.trigger();
         }
-        const userChannel = newUserInfo.getChannelId() as number;
-        const channel = this.channelList.get(userChannel);
-        channel?.$users.push(oldUserInfo);
-
-        console.log(channels?.$users);
-        this.channelListener.trigger();
     }
 
     private modifyUser(user: User, userInfo: UserState) {
-        if(userInfo.getMute() !== undefined) user.$mute = userInfo.getMute() as boolean;
-        if(userInfo.getDeaf() !== undefined) user.$deaf = userInfo.getDeaf() as boolean;
-        if(userInfo.getSelfMute() !== undefined) user.$selfMute = userInfo.getSelfMute() as boolean;
-        if(userInfo.getSelfDeaf() !== undefined) user.$selfDeaf = userInfo.getSelfDeaf() as boolean;
-        if(userInfo.getChannelId() !== undefined) user.$channel = userInfo.getChannelId() as number;
-        if(userInfo.getSession() !== undefined) user.$session = userInfo.getSession() as number;
+        if(userInfo.toObject().mute !== undefined)  user.$mute = userInfo.getMute() as boolean;
+        if(userInfo.toObject().deaf !== undefined) user.$deaf = userInfo.getDeaf() as boolean;
+        if(userInfo.toObject().selfMute !== undefined) user.$selfMute = userInfo.getSelfMute() as boolean;
+        if(userInfo.toObject().selfDeaf !== undefined) user.$selfDeaf = userInfo.getSelfDeaf() as boolean;
+        if(userInfo.toObject().session !== undefined) user.$session = userInfo.getSession() as number;
+        if(userInfo.toObject().channelId !== undefined) user.$channel = userInfo.getChannelId() as number;
     }
 
     public getUserById(id: number) {
@@ -174,6 +189,16 @@ export class Mumble {
         }
     }
 
+    public sendMessageToCurrentChannel(message: string) {
+        if(this.mySessionID !== undefined) {
+            const self = this.userList.get(this.mySessionID);
+            if(self !== undefined) {
+                const channel = this.channelList.get(self.$channel);
+                channel?.writeText(message);
+            }
+        }
+    }
+
     private messageListener(msg: ArrayBuffer) {
         const typeNum = from16Bit(msg.slice(0, 2));
         //const type: NetworkMessage = (NetworkMessage as any)[typeNum];
@@ -198,6 +223,10 @@ export class Mumble {
                 break;
             case NetworkMessage.TextMessage:
                 data = TextMessage.deserializeBinary(new Uint8Array(buffer));
+                console.log(data.toObject());
+                break;
+            case NetworkMessage.UserRemove:
+                data = UserRemove.deserializeBinary(new Uint8Array(buffer));
                 break;
         }
 

@@ -25,8 +25,8 @@ export class ChannelComponent extends React.Component<ChannelProps, ChannelState
     render() {
         return (<div onClick={this.handleJoin}>
             {this.props.channelRef.$name} ({this.props.channelRef.$users.length})
-            {this.props.channelRef.$users.map(user => {
-            return (<div>-> {user.$username}
+            {this.props.channelRef.$users.map((user, i) => {
+            return (<div key={i}> -> {user.$username}
                             {user.$selfDeaf ? "[D]" : ""}
                             {user.$selfMute ? "[M]" : ""}
                 </div>)

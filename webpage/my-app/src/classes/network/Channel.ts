@@ -1,5 +1,5 @@
 import {User} from "./User"
-import { UserState } from "../../generated/Mumble_pb";
+import { UserState, TextMessage } from "../../generated/Mumble_pb";
 import { Mumble } from "./Mumble";
 import { NetworkMessage } from "./NetworkMessages";
 
@@ -23,6 +23,18 @@ export class Channel {
             state.setChannelId(this.$id);
             state.setActor(myID);
             this.mumbleConnection.setUpSend(NetworkMessage.UserState, state.serializeBinary());
+        }
+    }
+
+    public writeText(message: string) {
+        let text = new TextMessage();
+        let myID = this.mumbleConnection.$mySessionID;
+        if(myID) {
+            text.setActor(myID);
+            text.setChannelIdList([this.$id]);
+            text.setMessage(message);
+            this.mumbleConnection.setUpSend(NetworkMessage.TextMessage, text.serializeBinary());
+            console.log(text.toObject());
         }
     }
 
