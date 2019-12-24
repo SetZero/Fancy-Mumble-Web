@@ -28,7 +28,7 @@ export class ChannelViewer extends React.Component<ChannelViewerProps, ChannelVi
     }
 
     render() {
-    return (<div>
+    return (<div id="channel-viewer">
         {Array.from(this.state.channels)
         .filter(e => e[1].$users.length > 0)
         .map((element, i) => {

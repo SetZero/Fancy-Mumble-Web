@@ -36,6 +36,11 @@
   font-size: 14pt;
 }
 
+#chatWrapper {
+  max-height: 100%;
+  overflow: auto;
+}
+
 .input-box {
   height: auto !important;
   min-height: calc(1.5em + .75rem + 2px);
@@ -44,4 +49,13 @@
 .input-box img{
   max-width: 100%;
   max-height: 100%;
+}
+
+#channel-viewer {
+  position: fixed;
+}
+
+#chat-content {
+  max-height: 100vh;
+  overflow: auto;
 }

@@ -61,8 +61,8 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   }
 
   checkSend(event: React.KeyboardEvent<HTMLDivElement>) {
-    if(event.shiftKey) {
       if(event.key === "Enter") {
+        if(!event.shiftKey && !event.ctrlKey) {
         this.formRef.current?.dispatchEvent(new Event('submit', { cancelable: true }));
         event.preventDefault();
       }
@@ -98,6 +98,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
       new ChatMessageClass(username, date, (<p dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(message)}}></p>))
     );
     this.setState({value: ''});
+    this.updateScroll();
   }
 
   handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -106,6 +107,12 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     this.addMessage(this.state.username, new Date(), this.state.value);
     event.preventDefault();
   }
+
+  private updateScroll(){
+    var element = document.getElementById("chat-content");
+    console.log(element);
+    if(element) element.scrollTop = element.scrollHeight;
+  }
   render() {
     return (
       <Container>
@@ -113,7 +120,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
           <Col xs lg="4">
             <ChannelViewer ref={this.channelViewerRef}></ChannelViewer>
           </Col>
-          <Col lg="8">
+          <Col lg="8" id="chat-content">
             <Row>
               <Col lg="12">
                 {this.props.children}
