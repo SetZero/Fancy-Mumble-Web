@@ -1,7 +1,27 @@
+@import url('https://fonts.googleapis.com/css?family=Amatic+SC:700&display=swap');
+
+html, body {
+  height: 100%;
+}
+
+.App, #root {
+  height: 100%;
+}
+
 .App-header {
   background-color: #282c34;
-  min-height: 100vh;
+  height: 100%;
   color: white;
+}
+
+#login-title {
+  color: #e0dfdc;
+  letter-spacing: .1em;
+  text-shadow: 4px 3px 0 rgb(0, 0, 0);
+  margin-bottom: 20px;
+  font-size: 40pt;
+  text-align: center;
+  font-family: 'Amatic SC', cursive;
 }
 
 .chat {
@@ -49,10 +69,6 @@
 .input-box img{
   max-width: 100%;
   max-height: 100%;
-}
-
-#channel-viewer {
-  position: fixed;
 }
 
 #chat-content {
