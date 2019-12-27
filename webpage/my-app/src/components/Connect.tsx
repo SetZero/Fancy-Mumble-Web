@@ -10,6 +10,8 @@ import Button from 'react-bootstrap/Button';
 import DropdownButton from 'react-bootstrap/DropdownButton';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Col from 'react-bootstrap/Col';
+import Alert from 'react-bootstrap/Alert';
+import Spinner from 'react-bootstrap/Spinner';
 import { SelectCallback } from 'react-bootstrap/helpers';
 
 export interface ConnectProps {
@@ -20,12 +22,13 @@ export interface ConnectState {
 }
 
 export class Connect extends React.Component<ConnectProps, ConnectState> {
-    chatRef: RefObject<Chat> = React.createRef();
-    wrapper: RefObject<HTMLDivElement> = React.createRef();
+    private chatRef: RefObject<Chat> = React.createRef();
+    private wrapper: RefObject<HTMLDivElement> = React.createRef();
+    private usernames : Array<string> = this.getPreviousUsernames();
 
     constructor(props: ConnectProps) {
         super(props);
-        this.state = {username: ''};
+        this.state = {username: this.usernames[0]};
         this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.connectWithPredefined = this.connectWithPredefined.bind(this);
@@ -48,33 +51,57 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
         return new_uri;
     }
 
+    private showElement(element: string, style: string = 'block') {
+        const loginSpinner = document.getElementById(element);
+        if(loginSpinner) loginSpinner.style.display = style;
+    }
+
+    private hideElement(element: string) {
+        const loginSpinner = document.getElementById(element);
+        if(loginSpinner) loginSpinner.style.display = "none";
+    }
+
     private handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        this.hideElement('chatWrapper');
+        this.showElement('login-spinner', 'inline-block');
         ReactDOM.render(<Chat ref={this.chatRef}></Chat>, document.getElementById('chatWrapper'));
         this.chatRef.current?.connect(this.buildWebSocketURI(), this.state.username);
-        const loginElement = document.getElementById("loginWrapper")
-        if(loginElement !== null) {
-            loginElement.style.display = "none";
-        }
-        var usernamesString = localStorage.getItem("usernames");
-        if(usernamesString) {
-            const usernames = JSON.parse(usernamesString);
-            if(Array.isArray(usernames)) {
-                let arr = (usernames as Array<String>)
-                while(arr.length >= 5) {
-                    arr.pop();
-                }
-                if(!arr.find(e => e === this.state.username)) {
-                    arr.unshift(this.state.username);
-                    const usernamesJSON = JSON.stringify(arr);
-                    localStorage.setItem("usernames", usernamesJSON)
-                }
+        this.chatRef.current?.onSuccess(e => {
+            this.hideElement('login-spinner');
+            this.showElement('chatWrapper');
+            const loginElement = document.getElementById("loginWrapper")
+            if(loginElement !== null) {
+                loginElement.style.display = "none";
             }
-        } else {
-            const usernames = [this.state.username];
-            const usernamesJSON = JSON.stringify(usernames);
-            localStorage.setItem("usernames", usernamesJSON)
-        }
+
+            var usernamesString = localStorage.getItem("usernames");
+            if(usernamesString) {
+                const usernames = JSON.parse(usernamesString);
+                if(Array.isArray(usernames)) {
+                    let arr = (usernames as Array<String>)
+                    while(arr.length >= 5) {
+                        arr.pop();
+                    }
+                    if(!arr.find(e => e === this.state.username)) {
+                        arr.unshift(this.state.username);
+                        const usernamesJSON = JSON.stringify(arr);
+                        localStorage.setItem("usernames", usernamesJSON)
+                    }
+                }
+            } else {
+                const usernames = [this.state.username];
+                const usernamesJSON = JSON.stringify(usernames);
+                localStorage.setItem("usernames", usernamesJSON)
+            }
+        });
+
+        this.chatRef.current?.onError(e => {
+            this.hideElement('login-spinner');
+            const loginElement = document.getElementById('login-error-viewer');
+            ReactDOM.render(<Alert variant="danger">{e}</Alert>, loginElement);
+        })
         //<Chat ref={this.chatRef}></Chat>
         //ReactDOM.render(<Chat ref={this.chatRef}></Chat>, this.wrapper);
         //this.wrapper.current?.insertAdjacentElement('afterbegin', <Chat ref={this.chatRef}></Chat>));
@@ -101,20 +128,21 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
     render() {
         return (
             <div className="h-100">
-                <Container className="h-100 row h-100 justify-content-center align-items-center">
-                    <Row >
-                        <Col md="auto" id="loginWrapper">
-                            <Form  onSubmit={this.handleSubmit}>
+                <Container className="h-100 row h-100 justify-content-center align-items-center" style={{margin: "0 auto"}}  id="loginWrapper">
+                    <Form  onSubmit={this.handleSubmit}>
+                        <Row><Col id="login-error-viewer"></Col></Row>
+                        <Row >
+                        <Col md="auto">
                             <h1 id="login-title">Fancy Mumble Web</h1>
                             <InputGroup className="mb-3">
                                 <InputGroup.Prepend>
                                     <DropdownButton
                                     as={InputGroup.Prepend}
                                     variant="outline-secondary"
-                                    title="Username"
+                                    title=""
                                     id="input-group-dropdown-1"
                                     >
-                                        {this.getPreviousUsernames().map((element, i) => {
+                                        {this.usernames.map((element, i) => {
                                             return (
                                                 <Dropdown.Item key={i} onClick={this.connectWithPredefined} href="#" data-username={element}>{element}</Dropdown.Item>
                                             )
@@ -129,14 +157,17 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
                                 aria-describedby="basic-addon1"
                                 />
                                 <InputGroup.Append>
-                                    <Button type="submit" variant="outline-secondary">Login</Button>
+                                    <Button type="submit" variant="outline-secondary">
+                                        Login
+                                        <Spinner id="login-spinner" size="sm" animation="border" variant="info" />
+                                    </Button>
                                 </InputGroup.Append>
                             </InputGroup>
-                            </Form>
-                        </Col>
-                    </Row>
+                            </Col>
+                        </Row>
+                    </Form>
                 </Container>
-                <div ref={this.wrapper} id="chatWrapper"></div>
+                <div ref={this.wrapper} id="chatWrapper" className="h-100"></div>
             </div>
         )
     }

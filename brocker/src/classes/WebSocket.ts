@@ -51,6 +51,10 @@ export class WebSocket {
                 console.log(err);
             });
 
+            brocker.on('error', (err) => {
+                console.log(err);
+            });
+
             ws.on('close', () => {
                 brocker.close();
             });

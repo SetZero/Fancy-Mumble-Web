@@ -1,5 +1,17 @@
 @import url('https://fonts.googleapis.com/css?family=Amatic+SC:700&display=swap');
 
+:root {
+  --main-color: #282c34;
+  --secondary-color: #6c757d;
+  --light-secondary-color: #cfd4d8;
+  --dark-secondary-color: #2b2f33;
+  --darker-secondary-color: #191b1d;
+}
+
+input[type="checkbox"] {
+  background-color: var(--secondary-color);
+}
+
 html, body {
   height: 100%;
 }
@@ -9,7 +21,7 @@ html, body {
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: var(--main-color);
   height: 100%;
   color: white;
 }
@@ -22,6 +34,10 @@ html, body {
   font-size: 40pt;
   text-align: center;
   font-family: 'Amatic SC', cursive;
+}
+
+.center-class {
+  margin: 0 auto;
 }
 
 .chat {
@@ -39,12 +55,10 @@ html, body {
 }
 
 .message {
-  margin: 0 auto;
   padding: 10px;
   margin: 10px;
-  background: #ffffff;
-  color: #282c34;
-  box-shadow: 4px 5px 7px 0px #000;
+  background: #34343c;
+  color: #c9d2e4;
 }
 
 .message img {
@@ -66,12 +80,40 @@ html, body {
   min-height: calc(1.5em + .75rem + 2px);
 }
 
+#main-text-input {
+  background-color: var(--secondary-color);
+  color: var(--light-secondary-color);
+  border: none;
+}
+
 .input-box img{
   max-width: 100%;
   max-height: 100%;
 }
 
 #chat-content {
-  max-height: 100vh;
+  height: calc(100vh - 60px);
   overflow: auto;
+}
+
+#chat-input {
+  height: 40px;
+  margin: 10px;
+}
+
+#login-spinner {
+  display: none;
+}
+
+#sidebar {
+  background-color: #232325;
+}
+
+.channel-info {
+  font-weight: bolder;
+  padding: 5px;
+}
+
+.channel-user-info {
+  padding: 10px;
 }

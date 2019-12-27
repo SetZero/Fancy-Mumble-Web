@@ -1,7 +1,7 @@
 import { WebSocketClient } from "../WebSocketClient";
 import { NetworkMessage } from "./NetworkMessages";
 import {from16Bit, from32Bit, to16Bit, to32Bit} from "../helper/NetworkingHelper";
-import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync, TextMessage, Ping, UserRemove} from "../../generated/Mumble_pb";
+import {Version, Authenticate, CryptSetup, ChannelState, UserState, ServerSync, TextMessage, Ping, UserRemove, Reject, ServerConfig} from "../../generated/Mumble_pb";
 import { User } from "./User";
 import { Channel } from "./Channel";
 import { LiteEvent } from "../helper/EventHandler";
@@ -12,6 +12,8 @@ export class Mumble {
 
     private readonly channelListener = new LiteEvent<void>();
     private readonly textListener = new LiteEvent<TextMessage>();
+    private readonly rejectListener = new LiteEvent<string>();
+    private readonly serverConfigListener = new LiteEvent<ServerConfig>();
 
     private mySessionID: number | undefined;
     private userList: Map<number, User> = new Map();
@@ -20,7 +22,10 @@ export class Mumble {
     constructor(location: string, username: string) {
         this.client = new WebSocketClient(location);
         this.setup(username);
-        this.initPing()
+        this.serverConfigListener.on(e => {
+            this.initPing();
+        })
+
 
         this.client.addMessageListener((msg) => this.messageListener(msg));
 
@@ -29,6 +34,8 @@ export class Mumble {
         this.on(NetworkMessage.ServerSync, (data) => { this.mySessionID = (data as ServerSync).getSession(); });
         this.on(NetworkMessage.TextMessage, (data) => {this.textListener.trigger(data)});
         this.on(NetworkMessage.UserRemove, (data) => {this.manageLeave(data as UserRemove)});
+        this.on(NetworkMessage.Reject, (data) => {this.manageError(data as Reject)});
+        this.on(NetworkMessage.ServerConfig, (data) => {this.manageConfig(data as ServerConfig)});
     }
     manageChannels(channelInfo: ChannelState): void {
         const id = channelInfo.getChannelId();
@@ -70,7 +77,7 @@ export class Mumble {
 		return this.mySessionID;
 	}
 
-    manageLeave(userInfo: UserRemove) {
+    private manageLeave(userInfo: UserRemove) {
         const id = userInfo.getSession();
         if(id !== undefined) {
             const user = this.userList.get(id);
@@ -83,6 +90,14 @@ export class Mumble {
                 this.channelListener.trigger();
             }
         }
+    }
+
+    private manageError(rejectInfo: Reject) {
+        this.rejectListener.trigger(rejectInfo.getReason());
+    }
+
+    private manageConfig(serverConfig: ServerConfig) {
+        this.serverConfigListener.trigger(serverConfig);
     }
 
     private manageUsers(userInfo: UserState): void {
@@ -124,6 +139,25 @@ export class Mumble {
         if(userInfo.toObject().selfDeaf !== undefined) user.$selfDeaf = userInfo.getSelfDeaf() as boolean;
         if(userInfo.toObject().session !== undefined) user.$session = userInfo.getSession() as number;
         if(userInfo.toObject().channelId !== undefined) user.$channel = userInfo.getChannelId() as number;
+        this.findProfileImage(user, userInfo);
+    }
+
+    private findProfileImage(user: User, userInfo: UserState) {
+        if(userInfo.hasTexture()) {
+            user.$texture = userInfo.getTextureHash_asB64() as string;
+        } else {
+            const content = userInfo.getComment();
+            var elem = document.createElement('div');
+            elem.style.display = 'none';
+            document.body.appendChild(elem);
+            elem.innerHTML = content ?? "";
+            const element = elem.querySelector('img')?.src;
+            if(element) {
+                user.$texture = element;
+            } else {
+                user.$texture = "data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=";
+            }
+        }
     }
 
     public getUserById(id: number) {
@@ -201,7 +235,7 @@ export class Mumble {
 
     private messageListener(msg: ArrayBuffer) {
         const typeNum = from16Bit(msg.slice(0, 2));
-        //const type: NetworkMessage = (NetworkMessage as any)[typeNum];
+        const type: NetworkMessage = (NetworkMessage as any)[typeNum];
         const size = from32Bit(msg.slice(2, 6));
         const buffer = msg.slice(6, 6 + size);
         let data: any = undefined
@@ -228,8 +262,13 @@ export class Mumble {
             case NetworkMessage.UserRemove:
                 data = UserRemove.deserializeBinary(new Uint8Array(buffer));
                 break;
+            case NetworkMessage.Reject:
+                data = Reject.deserializeBinary(new Uint8Array(buffer));
+                break;
+            case NetworkMessage.ServerConfig:
+                data = ServerConfig.deserializeBinary(new Uint8Array(buffer));
+                break;
         }
-
         this.serverMessageListener.get(typeNum)?.forEach(element => element(data));
     }
 
@@ -240,5 +279,7 @@ export class Mumble {
 
     public get channelEvent() { return this.channelListener.expose() }
     public get textMessage() { return this.textListener.expose() }
+    public get rejectEvent() { return this.rejectListener.expose() }
+    public get serverConfigEvent() { return this.serverConfigListener.expose() }
 
 }

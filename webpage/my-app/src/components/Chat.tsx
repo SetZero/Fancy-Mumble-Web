@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 import {ChatBox} from './ChatBox';
 import { ChatMessageClass } from './ChatMessage';
 import {Mumble} from "../classes/network/Mumble";
-import { TextMessage } from '../generated/Mumble_pb';
+import { TextMessage, ServerConfig } from '../generated/Mumble_pb';
 import { ChannelViewer } from './ChannelViewer';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
@@ -108,6 +108,15 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     event.preventDefault();
   }
 
+  public onError(handler: (data?: string | undefined) => void) {
+    this.mumbleConnection?.rejectEvent.on(handler);
+  }
+
+  public onSuccess(handler: (data?: ServerConfig | undefined) => void) {
+    this.mumbleConnection?.serverConfigEvent.on(handler);
+  }
+
+
   private updateScroll(){
     var element = document.getElementById("chat-content");
     console.log(element);
@@ -115,24 +124,24 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   }
   render() {
     return (
-      <Container>
-        <Row className="justify-content-md-center">
-          <Col xs lg="4">
+      <Container fluid={true} className="h-100">
+        <Row className="justify-content-md-center h-100">
+          <Col xs lg="4" id="sidebar">
             <ChannelViewer ref={this.channelViewerRef}></ChannelViewer>
           </Col>
-          <Col lg="8" id="chat-content">
-            <Row>
+          <Col lg="8" id="h-100">
+            <Row id="chat-content">
               <Col lg="12">
                 {this.props.children}
                 <ChatBox ref={this.childRef}>
                 </ChatBox>
               </Col>
             </Row>
-            <Row>
+            <Row id="chat-input">
               <Col lg="12">
                 <form onSubmit={this.handleSubmit} ref={this.formRef}>
                   <Form.Control onChange={this.handleChange} value={this.state.value} hidden/>
-                  <ContentEditable html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => this.pasteListener(e)} onChange={this.handleHTMLInput} className="form-control input-box" onKeyPressCapture={this.checkSend}/>
+                  <ContentEditable placeholder="Send message..." html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => this.pasteListener(e)} onChange={this.handleHTMLInput} className="form-control input-box" id="main-text-input" onKeyPressCapture={this.checkSend}/>
                 </form>
               </Col>
             </Row>

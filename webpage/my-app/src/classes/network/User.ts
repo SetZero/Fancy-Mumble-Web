@@ -11,12 +11,31 @@ export class User {
     private selfMute: boolean = false;
     private session: number = -1;
     private supress: boolean = false;
+    private texture: string = "";
 
     constructor(id: number, username: string, channel: number) {
         this.userID = id;
         this.username = username;
         this.channel = channel;
     }
+
+
+    /**
+     * Getter $texture
+     * @return {string }
+     */
+	public get $texture(): string  {
+		return this.texture;
+	}
+
+    /**
+     * Setter $texture
+     * @param {string } value
+     */
+	public set $texture(value: string ) {
+		this.texture = value;
+	}
+
 
     /**
      * Getter $channel

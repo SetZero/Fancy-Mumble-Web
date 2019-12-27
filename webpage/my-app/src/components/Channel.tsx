@@ -1,5 +1,7 @@
 import React from "react";
 import { Channel } from "../classes/network/Channel";
+import Badge from 'react-bootstrap/Badge';
+import Image from 'react-bootstrap/Image';
 
 interface ChannelProps {
     channelRef: Channel;
@@ -9,6 +11,7 @@ interface ChannelState {
 }
 
 export class ChannelComponent extends React.Component<ChannelProps, ChannelState> {
+    private readonly maxChannelLength = 35;
 
     constructor(props: ChannelProps) {
         super(props);
@@ -24,11 +27,16 @@ export class ChannelComponent extends React.Component<ChannelProps, ChannelState
 
     render() {
         return (<div onClick={this.handleJoin}>
-            {this.props.channelRef.$name} ({this.props.channelRef.$users.length})
+            <span className="channel-info">{this.props.channelRef.$name.substring(0, this.maxChannelLength)}</span>
+            <Badge pill variant="info">{this.props.channelRef.$users.length}</Badge>
             {this.props.channelRef.$users.map((user, i) => {
-            return (<div key={i}> -> {user.$username}
-                            {user.$selfDeaf ? "[D]" : ""}
-                            {user.$selfMute ? "[M]" : ""}
+            return (<div key={i}>
+                            <Image width="20" height="20" src={user.$texture} roundedCircle />
+                            <span className="channel-user-info">
+                                {user.$username}
+                                {user.$selfDeaf ? "[D]" : ""}
+                                {user.$selfMute ? "[M]" : ""}
+                            </span>
                 </div>)
             })}
             </div>)
