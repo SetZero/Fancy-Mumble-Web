@@ -1,17 +1,31 @@
 import {Server} from 'ws';
 import { Brocker } from './Brocker';
 import {from16Bit, from32Bit} from './utils/BitUtils';
+import {createServer} from 'https'
+import {readFileSync} from 'fs'
 
 export class WebSocket {
     private wss: Server;
+    private static readonly PORT: number = Number(process.env.MUMBLE_PORT) ?? 64738;
+    private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
+    private static readonly CERT: string = process.env.MUMBLE_WEB_CERT || "";
+    private static readonly KEY: string = process.env.MUMBLE_WEB_KEY || "";
 
     constructor(portnumber: number) {
-        console.log("Started!");
-        this.wss = new Server({ port: portnumber });
+        if(WebSocket.CERT !== "" && WebSocket.KEY !== "") {
+            const server = createServer({
+                cert: readFileSync(WebSocket.CERT),
+                key: readFileSync(WebSocket.KEY)
+              });
+              this.wss = new Server({ port: portnumber, server });
+        } else {
+            this.wss = new Server({ port: portnumber });
+        }
+
         this.wss.on('connection', (ws) => {
             console.log("new connection");
 
-            const brocker = new Brocker("nooblounge.net", 64738);
+            const brocker = new Brocker(WebSocket.SERVER, WebSocket.PORT);
             ws.on('message', (data) =>  brocker.repack(data));
             let tmpBufferLoops: number | undefined = undefined;
             brocker.on("data", (data) => {
