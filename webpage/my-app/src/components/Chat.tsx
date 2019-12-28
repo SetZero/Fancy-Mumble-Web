@@ -10,13 +10,15 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import ContentEditable, { ContentEditableEvent }  from 'react-contenteditable';
+import { User } from '../classes/network/User';
+import { ChatMessageParser } from './chat/ChatMessageParser';
 
 interface ChatProps {
 }
 interface ChatState {
   value: string;
   location: string;
-  username: string;
+  selfUser: User | undefined;
 }
 
 export class Chat extends React.Component<ChatProps, ChatState> {
@@ -24,11 +26,12 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   private mumbleConnection: Mumble | undefined;
   private channelViewerRef: React.RefObject<ChannelViewer> = React.createRef();
   private formRef: React.RefObject<HTMLFormElement> = React.createRef();
+  private messageParser: ChatMessageParser = new ChatMessageParser();
 
   constructor(props: ChatProps) {
     super(props);
 
-    this.state = {value: '', location: '', username: ''};
+    this.state = {value: '', location: '', selfUser: undefined};
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.checkSend = this.checkSend.bind(this);
@@ -36,20 +39,24 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   }
 
   connect(host: string, user: string) {
-    let newState = {location: host, username: user};
-    this.setState(newState);
-    console.log(newState);
     this.mumbleConnection = new Mumble(host, user);
+    this.mumbleConnection.serverConfigEvent.on((e) => {
+      let newState = {location: host, selfUser: this.mumbleConnection?.$userList.get(this.mumbleConnection.$mySessionID ?? -1)};
+      this.setState(newState);
+    })
+
 
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleHTMLInput = this.handleHTMLInput.bind(this);
-    this.pasteListener = this.pasteListener.bind(this);
+    this.messageParser.pasteListener = this.messageParser.pasteListener.bind(this);
 
     this.mumbleConnection.textMessage.on((data) => {
       let message = (data as TextMessage);
-      let username = this.mumbleConnection?.getUserById(message.getActor() as number)?.$username;
-      this.addMessage(username, new Date(), message.getMessage())
+      let user = this.mumbleConnection?.getUserById(message.getActor() as number);
+      if(user) {
+        this.addMessage(user, new Date(), message.getMessage())
+      }
     });
     if(this.channelViewerRef.current) {
       this.channelViewerRef.current.$mumbleConnection = this.mumbleConnection;
@@ -69,33 +76,16 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     }
   }
 
-  pasteListener(event: React.ClipboardEvent<HTMLDivElement>) {
-    event.persist();
-    if(event.clipboardData.files.length > 0 && !event.clipboardData.types.includes("text/html")) {
-      console.log(event.clipboardData.files);
-      Array.from(event.clipboardData.files).forEach((file) => {
-        var reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function () {
-          const img: HTMLImageElement = document.createElement("img");
-          img.setAttribute("src", reader.result as string);
-          console.log(img);
-          (event.target as HTMLDivElement).appendChild(img);
-          event.preventDefault();
-        }
-      });
-   };
-
-  }
 
   handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({value: event.target.value});
     event.preventDefault();
   }
 
-  addMessage(username: string = "unknown", date: Date = new Date(), message: string = "") {
+  addMessage(user: User, date: Date = new Date(), message: string = "") {
+    const output = this.messageParser.parse(message);
     this.childRef.current?.addMessage(
-      new ChatMessageClass(username, date, (<p dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(message)}}></p>))
+      new ChatMessageClass(user, date, output)
     );
     this.setState({value: ''});
     this.updateScroll();
@@ -104,7 +94,9 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     //this.client.sendMessage(this.state.value);
     this.mumbleConnection?.sendMessageToCurrentChannel(this.state.value);
-    this.addMessage(this.state.username, new Date(), this.state.value);
+    if(this.state.selfUser) {
+      this.addMessage(this.state.selfUser, new Date(), this.state.value);
+    }
     event.preventDefault();
   }
 
@@ -141,7 +133,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
               <Col lg="12">
                 <form onSubmit={this.handleSubmit} ref={this.formRef}>
                   <Form.Control onChange={this.handleChange} value={this.state.value} hidden/>
-                  <ContentEditable placeholder="Send message..." html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => this.pasteListener(e)} onChange={this.handleHTMLInput} className="form-control input-box" id="main-text-input" onKeyPressCapture={this.checkSend}/>
+                  <ContentEditable placeholder="Send message..." html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => this.messageParser.pasteListener(e)} onChange={this.handleHTMLInput} className="form-control input-box" id="main-text-input" onKeyPressCapture={this.checkSend}/>
                 </form>
               </Col>
             </Row>

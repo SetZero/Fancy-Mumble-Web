@@ -34,7 +34,6 @@ export class Channel {
             text.setChannelIdList([this.$id]);
             text.setMessage(message);
             this.mumbleConnection.setUpSend(NetworkMessage.TextMessage, text.serializeBinary());
-            console.log(text.toObject());
         }
     }
 

@@ -24,8 +24,7 @@ export class Mumble {
         this.setup(username);
         this.serverConfigListener.on(e => {
             this.initPing();
-        })
-
+        });
 
         this.client.addMessageListener((msg) => this.messageListener(msg));
 
@@ -157,6 +156,7 @@ export class Mumble {
             } else {
                 user.$texture = "data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=";
             }
+            elem.remove();
         }
     }
 

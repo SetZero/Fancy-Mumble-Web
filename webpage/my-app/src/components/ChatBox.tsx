@@ -16,14 +16,14 @@ export class ChatBox extends React.Component<ChatBoxProps, ChatBoxState> {
 
     addMessage(message: ChatMessageClass) {
         this.state.messages.push(message);
-        console.log("Message: " + message.username);
+        console.log("Message: " + message.user.$username);
     }
 
     render() {
         let children = new Array<JSX.Element>();
 
         this.state.messages.forEach((element, i) =>  {
-            children.push(<ChatMessage username={element.username} timestamp={element.timestamp.toUTCString()} key={i}>{element.message}</ChatMessage>);
+            children.push(<ChatMessage user={element.user} timestamp={element.timestamp.toUTCString()} key={i}>{element.message}</ChatMessage>);
         });
 
         return (

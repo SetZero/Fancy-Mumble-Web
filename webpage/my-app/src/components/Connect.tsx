@@ -12,7 +12,6 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import Spinner from 'react-bootstrap/Spinner';
-import { SelectCallback } from 'react-bootstrap/helpers';
 
 export interface ConnectProps {
 }
