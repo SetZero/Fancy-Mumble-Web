@@ -13,6 +13,7 @@ export class WebSocket {
 
     constructor(portnumber: number) {
         if(WebSocket.CERT !== "" && WebSocket.KEY !== "") {
+            console.log("Using secure connection...");
             const server = createServer({
                 cert: readFileSync(WebSocket.CERT),
                 key: readFileSync(WebSocket.KEY)
