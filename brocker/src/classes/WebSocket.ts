@@ -6,7 +6,7 @@ import {readFileSync} from 'fs'
 
 export class WebSocket {
     private wss: Server;
-    private static readonly PORT: number = Number(process.env.MUMBLE_PORT) ?? 64738;
+    private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
     private static readonly CERT: string = process.env.MUMBLE_WEB_CERT || "";
     private static readonly KEY: string = process.env.MUMBLE_WEB_KEY || "";
