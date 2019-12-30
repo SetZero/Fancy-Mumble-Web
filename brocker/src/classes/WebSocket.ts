@@ -16,7 +16,7 @@ export class WebSocket {
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
     private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
-    private readonly dir = tmp.dirSync();
+    private readonly dir = tmp.dirSync({prefix: "mmbl_images_"});
     private readonly httpServerPort: number;
 
     constructor(mainPort: number, helperPort: number, webServerPort: number) {
