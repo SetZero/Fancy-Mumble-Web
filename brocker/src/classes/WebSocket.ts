@@ -29,7 +29,7 @@ export class WebSocket {
 
         this.httpServer.on('upgrade', (request, socket, head) => this.upgrade(request, socket, head) );
         this.httpServer.listen(webServerPort);
-        this.httpServerPort = webServerPort;
+        this.httpServerPort = Number(process.env.MUMBLE_SERVER_WEB_PORT) || webServerPort;
     }
 
     private handleMainConnection(ws: ws) {
@@ -103,7 +103,7 @@ export class WebSocket {
         const pathname = url.parse(request.url).pathname;
         const filename = path.parse(pathname ?? "").base;
 
-        if(pathname?.startsWith("/" + process.env.MUMBLE_SERVER_BASEPATH)) {
+        if(pathname?.startsWith("/" + WebSocket.BASEPATH)) {
             const fullName = path.join(this.dir.name, filename);
             const type = mime.lookup(fullName);
             fs.exists(fullName, (exist) => {
