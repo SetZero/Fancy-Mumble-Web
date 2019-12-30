@@ -13,7 +13,6 @@ import ContentEditable, { ContentEditableEvent }  from 'react-contenteditable';
 import { User } from '../classes/network/User';
 import { ChatMessageParser } from './chat/ChatMessageParser';
 import { WebSocketClient } from '../classes/WebSocketClient';
-import { stringify } from 'querystring';
 
 interface ChatProps {
 }

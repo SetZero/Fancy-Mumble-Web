@@ -1,7 +1,5 @@
 import React from "react";
-import reactStringReplace from "react-string-replace"
 import { SyntaxHighlighter } from "./SyntaxHighlighter";
-import ReactDOMServer from 'react-dom/server';
 import DOMPurify from "dompurify";
 import { WebSocketClient } from "../../classes/WebSocketClient";
 

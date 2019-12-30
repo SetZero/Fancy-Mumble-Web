@@ -235,7 +235,7 @@ export class Mumble {
 
     private messageListener(msg: ArrayBuffer) {
         const typeNum = from16Bit(msg.slice(0, 2));
-        const type: NetworkMessage = (NetworkMessage as any)[typeNum];
+        // const type: NetworkMessage = (NetworkMessage as any)[typeNum];
         const size = from32Bit(msg.slice(2, 6));
         const buffer = msg.slice(6, 6 + size);
         let data: any = undefined
