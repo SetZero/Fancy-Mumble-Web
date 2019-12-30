@@ -15,7 +15,7 @@ export class WebSocket {
     private helperSocket: ws.Server;
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
-    private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "";
+    private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
     private readonly dir = tmp.dirSync();
     private readonly httpServerPort: number;
 
@@ -59,7 +59,7 @@ export class WebSocket {
                     if(err) {
                         console.log("Error on write: ", err);
                     } else {
-                        const filename = message.protocol + "//" + message.host + ":" + this.httpServerPort + "/" + path.join(WebSocket.BASEPATH, "images", path.basename(tmpobj.name));
+                        const filename = message.protocol + "//" + message.host + ":" + this.httpServerPort + "/" + path.join(WebSocket.BASEPATH, path.basename(tmpobj.name));
                         ws.send(JSON.stringify({messageType: message.messageType, payload: filename, timestamp: message.timestamp}));
                     }
                 })
@@ -103,7 +103,7 @@ export class WebSocket {
         const pathname = url.parse(request.url).pathname;
         const filename = path.parse(pathname ?? "").base;
 
-        if(pathname?.startsWith("/images")) {
+        if(pathname?.startsWith("/" + process.env.MUMBLE_SERVER_BASEPATH)) {
             const fullName = path.join(this.dir.name, filename);
             const type = mime.lookup(fullName);
             fs.exists(fullName, (exist) => {
