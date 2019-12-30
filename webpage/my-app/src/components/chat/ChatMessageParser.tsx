@@ -50,6 +50,7 @@ export class ChatMessageParser {
 
     pasteListener(event: React.ClipboardEvent<HTMLDivElement>, self: ChatMessageParser) {
         event.persist();
+        event.preventDefault();
         if(event.clipboardData.files.length > 0 && !event.clipboardData.types.includes("text/html")) {
             Array.from(event.clipboardData.files).forEach((file) => {
                 var reader = new FileReader();
@@ -65,7 +66,6 @@ export class ChatMessageParser {
                                                                         payload: reader.result,
                                                                         timestamp: date}));
                     self.eventMap.set(date, event.target as HTMLElement);
-                    event.preventDefault();
                 }
             });
         }
