@@ -32,6 +32,7 @@ export class ChatMessageParser {
             const img: HTMLImageElement = document.createElement("img");
             img.setAttribute("src", message.payload);
             link.appendChild(img);
+            link.append("(Image)");
             element?.appendChild(link);
 
             console.log(message.payload);
