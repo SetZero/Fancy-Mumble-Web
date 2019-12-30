@@ -42,8 +42,9 @@ export class ChatMessageParser {
     parse(message: string) {
         var tmp = document.createElement("DIV");
         tmp.innerHTML = DOMPurify.sanitize(message);
+        this.findLinks(tmp);
         this.improveLinks(tmp);
-        const stripped = tmp.textContent || tmp.innerText || "";
+        const stripped = tmp.innerText || tmp.textContent || "";
 
         const plainmessage = stripped;
         const match = plainmessage.match(ChatMessageParser.codeBlock);
@@ -82,10 +83,32 @@ export class ChatMessageParser {
     }*/
     }
 
+    private findLinks(text: HTMLElement) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const checkItems = Array.from(text.childNodes);
+        checkItems.filter((e) => e.nodeType !== Node.TEXT_NODE).forEach((e) => this.findLinks(e as HTMLElement));
+        checkItems.push(text);
+        console.log(text.nodeType);
+        checkItems.filter((e) => e.nodeType === Node.TEXT_NODE).forEach((e) => {
+            console.log("Text Node: " + e);
+            const newContent = e.textContent?.replace(urlRegex, function(url) {
+                return '<a href="' + url + '">' + url + '</a>';
+            }) ?? ""
+            const container = document.createElement("span");
+            container.innerHTML = newContent;
+            e.textContent = "";
+            e.parentElement?.appendChild(container);
+        })
+    }
+
     private improveLinks(dom: HTMLElement) {
-    const links = dom.getElementsByTagName("a");
-    Array.from(links).forEach(element => {
-        element.setAttribute("target", "_blank");
-    });
+        const links = dom.getElementsByTagName("a");
+        Array.from(links).forEach(element => {
+            element.setAttribute("target", "_blank");
+            const location = element.getAttribute("href");
+            if(location) {
+                this.helperConnection?.sendMessage(JSON.stringify({messageType: "link", payload: location}));
+            }
+        });
     }
 }
