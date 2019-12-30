@@ -10,12 +10,13 @@ import { MumbleDataHelper } from "./MumbleDataHelper";
 
 
 export class WebSocket {
-    private readonly httpServer: http.Server;
-    private mainMumbleSocket: ws.Server;
-    private helperSocket: ws.Server;
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
     private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
+    private static readonly MAX_IMAGE_SIZE: number = 10 * 1024 * 1024;
+    private readonly httpServer: http.Server;
+    private mainMumbleSocket: ws.Server;
+    private helperSocket: ws.Server;
     private readonly dir = tmp.dirSync({prefix: "mmbl_images_"});
     private readonly httpServerPort: number;
 
@@ -68,16 +69,19 @@ export class WebSocket {
     private handleHelperConnection(ws: ws) {
         //TODO!
         ws.on('message', (data) =>  {
-            console.log("got message")
             const message = JSON.parse(data.toString());
-            console.log("parsed message")
             if(message.messageType === "image") {
                 //const payload = this.urltoFile(message.payload);
-                const payload = message.payload.split(';base64,').pop();
-                console.log("formated to file message")
+                const payload = Buffer.from(message.payload.split(';base64,').pop());
+                console.log(payload.byteLength);
+                if(payload.byteLength >= WebSocket.MAX_IMAGE_SIZE) {
+                    console.log("Failure!");
+                    ws.send(JSON.stringify({messageType: "error", payload: "Maximum image size exceeded!", timestamp: message.timestamp}));
+                    return;
+                }
                 const extention = "." + (mime.extension(message.type) || "txt");
                 const tmpobj = tmp.fileSync({dir: this.dir.name, postfix: extention});
-                fs.writeFile(tmpobj.fd, payload, {encoding: 'base64'}, (err) => {
+                fs.writeFile(tmpobj.fd, payload.toString(), {encoding: 'base64'}, (err) => {
                     if(err) {
                         console.log("Error on write: ", err);
                     } else {
