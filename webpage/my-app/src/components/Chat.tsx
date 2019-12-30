@@ -12,6 +12,8 @@ import Form from 'react-bootstrap/Form';
 import ContentEditable, { ContentEditableEvent }  from 'react-contenteditable';
 import { User } from '../classes/network/User';
 import { ChatMessageParser } from './chat/ChatMessageParser';
+import { WebSocketClient } from '../classes/WebSocketClient';
+import { stringify } from 'querystring';
 
 interface ChatProps {
 }
@@ -23,9 +25,11 @@ interface ChatState {
 
 export class Chat extends React.Component<ChatProps, ChatState> {
   private childRef: React.RefObject<ChatBox> = React.createRef();
-  private mumbleConnection: Mumble | undefined;
   private channelViewerRef: React.RefObject<ChannelViewer> = React.createRef();
   private formRef: React.RefObject<HTMLFormElement> = React.createRef();
+
+  private helperConnection: WebSocketClient<string> | undefined;
+  private mumbleConnection: Mumble | undefined;
   private messageParser: ChatMessageParser = new ChatMessageParser();
 
   constructor(props: ChatProps) {
@@ -40,6 +44,8 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   connect(host: string, user: string) {
     this.mumbleConnection = new Mumble(host, user);
+    this.helperConnection = new WebSocketClient(host + "helper", "" as string);
+    this.messageParser.$helperConnection = this.helperConnection;
     this.mumbleConnection.serverConfigEvent.on((e) => {
       let newState = {location: host, selfUser: this.mumbleConnection?.$userList.get(this.mumbleConnection.$mySessionID ?? -1)};
       this.setState(newState);
@@ -114,6 +120,11 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     console.log(element);
     if(element) element.scrollTop = element.scrollHeight;
   }
+
+  private pasteEvent(e: React.ClipboardEvent<HTMLDivElement>) {
+    this.messageParser.pasteListener(e, this.messageParser);
+  }
+
   render() {
     return (
       <Container fluid={true} className="h-100">
@@ -133,7 +144,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
               <Col lg="12">
                 <form onSubmit={this.handleSubmit} ref={this.formRef}>
                   <Form.Control onChange={this.handleChange} value={this.state.value} hidden/>
-                  <ContentEditable placeholder="Send message..." html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => this.messageParser.pasteListener(e)} onChange={this.handleHTMLInput} className="form-control input-box" id="main-text-input" onKeyPressCapture={this.checkSend}/>
+                  <ContentEditable placeholder="Send message..." html={DOMPurify.sanitize(this.state.value)} onPaste={(e) => {this.pasteEvent(e)} } onChange={this.handleHTMLInput} className="form-control input-box" id="main-text-input" onKeyPressCapture={this.checkSend}/>
                 </form>
               </Col>
             </Row>

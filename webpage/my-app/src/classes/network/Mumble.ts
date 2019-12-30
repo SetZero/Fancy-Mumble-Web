@@ -7,7 +7,7 @@ import { Channel } from "./Channel";
 import { LiteEvent } from "../helper/EventHandler";
 
 export class Mumble {
-    private readonly client: WebSocketClient;
+    private readonly client: WebSocketClient<ArrayBuffer>;
     private serverMessageListener: Map<NetworkMessage, Array<(data: any) => void>> = new Map();
 
     private readonly channelListener = new LiteEvent<void>();
@@ -20,13 +20,13 @@ export class Mumble {
     private channelList: Map<number, Channel> = new Map();
 
     constructor(location: string, username: string) {
-        this.client = new WebSocketClient(location);
+        this.client = new WebSocketClient(location, new ArrayBuffer(0));
         this.setup(username);
         this.serverConfigListener.on(e => {
             this.initPing();
         });
 
-        this.client.addMessageListener((msg) => this.messageListener(msg));
+        this.client.addMessageListener((msg) => { if(msg) this.messageListener(msg) } );
 
         this.on(NetworkMessage.ChannelState, (data) => this.manageChannels(data as ChannelState));
         this.on(NetworkMessage.UserState, (data) => this.manageUsers(data as UserState));

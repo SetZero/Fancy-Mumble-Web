@@ -1,78 +1,112 @@
-import {Server} from 'ws';
+import * as ws from "ws";
+import * as http from "http";
+import * as url from "url";
+import * as tmp from "tmp";
+import * as fs from "fs";
+import * as path from "path";
 import { Brocker } from './Brocker';
-import {from16Bit, from32Bit} from './utils/BitUtils';
-import {createServer} from 'https'
-import {readFileSync} from 'fs'
+import { MumbleDataHelper } from "./MumbleDataHelper";
+
 
 export class WebSocket {
-    private wss: Server;
+    private readonly httpServer: http.Server;
+    private mainMumbleSocket: ws.Server;
+    private helperSocket: ws.Server;
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
-    private static readonly CERT: string = process.env.MUMBLE_WEB_CERT || "";
-    private static readonly KEY: string = process.env.MUMBLE_WEB_KEY || "";
+    private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
+    private readonly dir = tmp.dirSync();
 
-    constructor(portnumber: number) {
-        if(WebSocket.CERT !== "" && WebSocket.KEY !== "") {
-            console.log("Using secure connection...");
-            const server = createServer({
-                cert: readFileSync(WebSocket.CERT),
-                key: readFileSync(WebSocket.KEY)
-              });
-              this.wss = new Server({ port: portnumber, server });
-        } else {
-            this.wss = new Server({ port: portnumber });
-        }
+    constructor(mainPort: number, helperPort: number, webServerPort: number) {
+        this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
+        this.mainMumbleSocket = new ws.Server({ port: mainPort, noServer: true });
+        this.helperSocket = new ws.Server({ port: helperPort, noServer: true });
 
-        this.wss.on('connection', (ws) => {
+        this.mainMumbleSocket.on('connection', (ws) => {this.handleMainConnection(ws)});
+        this.helperSocket.on('connection', (ws) => {this.handleHelperConnection(ws)});
+
+        this.httpServer.on('upgrade', (request, socket, head) => this.upgrade(request, socket, head) );
+        this.httpServer.listen(webServerPort);
+    }
+
+    private handleMainConnection(ws: ws) {
             console.log("new connection");
 
             const brocker = new Brocker(WebSocket.SERVER, WebSocket.PORT);
+            const dataHelper: MumbleDataHelper = new MumbleDataHelper(brocker, ws);
+
+            brocker.on("data", (data) => {dataHelper.handleInput(data)});
+            brocker.on('uncaughtException', (err) => { console.log(err); });
+            brocker.on('error', (err) => { console.log(err); });
+
             ws.on('message', (data) =>  brocker.repack(data));
-            let tmpBufferLoops: number | undefined = undefined;
-            brocker.on("data", (data) => {
-                const buf = Buffer.from(data);
-                let position = 0;
+            ws.on('close', () => { brocker.close(); });
+    }
 
-                if(tmpBufferLoops !== undefined && tmpBufferLoops > 0) {
-                    brocker.addToBuffer(buf.slice(0, Math.min(tmpBufferLoops, buf.byteLength)));
-                    tmpBufferLoops -= buf.byteLength;
-                    if(tmpBufferLoops <= 0) {
-                        ws.send(brocker.flushBuffer());
-                        position = buf.byteLength + tmpBufferLoops;
-                        tmpBufferLoops = undefined;
+    private handleHelperConnection(ws: ws) {
+        //TODO!
+        ws.on('message', (data) =>  { 
+            const message = JSON.parse(data.toString());
+            if(message.messageType === "image") {
+                //console.log(message.payload);
+                const payload = this.urltoFile(message.payload);
+                const tmpobj = tmp.fileSync({dir: this.dir.name});
+                fs.write(tmpobj.fd, payload, (err) => {
+                    if(err) {
+                        console.log("Error on write: ", err);
+                    } else {
+                        const filename = path.join(WebSocket.BASEPATH, "images", path.basename(tmpobj.name));
+                        ws.send(JSON.stringify({messageType: message.messageType, payload: filename, timestamp: message.timestamp}));
                     }
-                }
-
-                if(tmpBufferLoops === undefined || tmpBufferLoops <= 0){
-                    while(position < buf.byteLength) {
-                        //const type = from16Bit(buf.slice(position, position + 2));
-                        const size = from32Bit(buf.slice(position + 2, position + 6)) + 6;
-                        if(size <= buf.byteLength) {
-                            ws.send(buf.slice(position, position + size));
-                            position += size;
-                        } else {
-                            if(tmpBufferLoops === undefined) {
-                                tmpBufferLoops = size - (buf.byteLength - position);
-                                brocker.initBuffer(size);
-                                brocker.addToBuffer(buf.slice(position, buf.byteLength));
-                                break;
-                            }
-                        }
-                    }
-                }
-            });
-
-            brocker.on('uncaughtException', (err) => {
-                console.log(err);
-            });
-
-            brocker.on('error', (err) => {
-                console.log(err);
-            });
-
-            ws.on('close', () => {
-                brocker.close();
-            });
+                })
+            }
         });
+    }
+
+    private urltoFile(url: string){
+        const regex = /^data:.+\/(.+);base64,(.*)$/;
+        const matches = url.match(regex);
+        if(matches && matches.length > 2) {
+            const ext = matches[1];
+            const data = matches[2];
+            const buffer = Buffer.from(data, 'base64');
+            return buffer;
+        }
+        return null;
+    }
+
+    upgrade(request: any, socket: any, head: any): void {
+        const pathname = url.parse(request.url).pathname;
+
+        switch(pathname) {
+            case "/":
+                this.mainMumbleSocket.handleUpgrade(request, socket, head, (ws) => {
+                    this.mainMumbleSocket.emit('connection', ws, request);
+                });
+                break;
+            case "/helper":
+                this.helperSocket.handleUpgrade(request, socket, head, (ws) => {
+                    this.helperSocket.emit('connection', ws, request);
+                });
+                break;
+            default:
+                socket.destroy();
+                break;
+        }
+    }
+
+    handleWebConnection(request: any, resource: any): void {
+        const pathname = url.parse(request.url).pathname;
+        const filename = path.parse(pathname ?? "").base;
+
+        if(pathname?.startsWith("/images")) {
+            const fullName = path.join(this.dir.name, filename);
+            fs.exists(fullName, (exist) => {
+                fs.readFile(fullName, (err, data) => {
+                    //resource.setHeader('Content-type', map[ext] || 'text/plain' );
+                    resource.end(data);
+                });
+            })
+        }
     }
 }

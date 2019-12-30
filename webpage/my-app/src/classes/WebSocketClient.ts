@@ -1,22 +1,24 @@
 import {} from 'ws';
+import { LiteEvent } from './helper/EventHandler';
 
-export class WebSocketClient {
+export class WebSocketClient<T extends string | ArrayBuffer> {
+    private dummy: T;
     private ws: WebSocket;
-    private messageOutQueue: Array<ArrayBuffer>;
-    private messageListener: Array<(data: ArrayBuffer) => any>;
+    private messageOutQueue: Array<T>;
     private ready: boolean = false;
+    private eventListener = new LiteEvent<T>();
 
-    constructor(host: string) {
+    constructor(host: string, dummy: T) {
+        this.dummy = dummy;
         this.ws = new WebSocket(host);
         this.messageOutQueue = [];
-        this.messageListener = [];
 
         this.ws.addEventListener("open", () => { this.workOnQueue(); });
         this.ws.addEventListener("message", (event) => { this.handleMessage(event); })
         this.ws.addEventListener("close", () => {this.ready = false;});
     }
 
-    public sendMessage(message: ArrayBuffer) {
+    public sendMessage(message: T) {
         if(!this.ready) {
             this.messageOutQueue.push(message);
         } else {
@@ -25,18 +27,22 @@ export class WebSocketClient {
     }
 
     public handleMessage(event: MessageEvent) {
-        var reader = new FileReader();
-        reader.readAsArrayBuffer(event.data);
-        reader.addEventListener("loadend", () => {
-            if(reader.result instanceof ArrayBuffer) {
-                this.messageListener.forEach(element => element(reader.result as ArrayBuffer));
-            }
-        });
-        //element.apply(new ArrayBuffer(event.data))
+        if(this.dummy instanceof ArrayBuffer) {
+            var reader = new FileReader();
+            reader.readAsArrayBuffer(event.data);
+            reader.addEventListener("loadend", () => {
+                if(reader.result instanceof ArrayBuffer) {
+                    this.eventListener.trigger(reader.result as T)
+                }
+            });
+        } else {
+            //this.messageListener.forEach(element => element(reader.result as T));
+            this.eventListener.trigger(event.data as T);
+        }
     }
 
-    public addMessageListener(listener: (data: ArrayBuffer) => any) {
-        this.messageListener.push(listener);
+    public addMessageListener(listener: (data: T | undefined) => any) {
+        this.eventListener.on(listener);
     }
 
     private workOnQueue() {
