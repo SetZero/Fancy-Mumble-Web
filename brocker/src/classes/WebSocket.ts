@@ -22,7 +22,26 @@ export class WebSocket {
     constructor(mainPort: number, helperPort: number, webServerPort: number) {
         this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
         this.mainMumbleSocket = new ws.Server({ port: mainPort, noServer: true });
-        this.helperSocket = new ws.Server({ port: helperPort, noServer: true });
+        this.helperSocket = new ws.Server({ port: helperPort, noServer: true, perMessageDeflate: {
+            zlibDeflateOptions: {
+              // See zlib defaults.
+              chunkSize: 1024,
+              memLevel: 7,
+              level: 3
+            },
+            zlibInflateOptions: {
+              chunkSize: 10 * 1024
+            },
+            // Other options settable:
+            clientNoContextTakeover: true, // Defaults to negotiated value.
+            serverNoContextTakeover: true, // Defaults to negotiated value.
+            serverMaxWindowBits: 10, // Defaults to negotiated value.
+            // Below options specified as default values.
+            concurrencyLimit: 10, // Limits zlib concurrency for perf.
+            threshold: 1024 // Size (in bytes) below which messages
+            // should not be compressed.
+          }
+        });
 
         this.mainMumbleSocket.on('connection', (ws) => {this.handleMainConnection(ws)});
         this.helperSocket.on('connection', (ws) => {this.handleHelperConnection(ws)});
@@ -49,13 +68,16 @@ export class WebSocket {
     private handleHelperConnection(ws: ws) {
         //TODO!
         ws.on('message', (data) =>  {
+            console.log("got message")
             const message = JSON.parse(data.toString());
+            console.log("parsed message")
             if(message.messageType === "image") {
-                //console.log(message.payload);
-                const payload = this.urltoFile(message.payload);
+                //const payload = this.urltoFile(message.payload);
+                const payload = message.payload.split(';base64,').pop();
+                console.log("formated to file message")
                 const extention = "." + (mime.extension(message.type) || "txt");
                 const tmpobj = tmp.fileSync({dir: this.dir.name, postfix: extention});
-                fs.write(tmpobj.fd, payload, (err) => {
+                fs.writeFile(tmpobj.fd, payload, {encoding: 'base64'}, (err) => {
                     if(err) {
                         console.log("Error on write: ", err);
                     } else {

@@ -53,14 +53,16 @@ export class ChatMessageParser {
         if(event.clipboardData.files.length > 0 && !event.clipboardData.types.includes("text/html")) {
             Array.from(event.clipboardData.files).forEach((file) => {
                 var reader = new FileReader();
+                console.log("start reading...")
                 reader.readAsDataURL(file);
                 reader.onload = () => {
+                    console.log("finished reading...")
                     const date = Date.now();
                     self.helperConnection?.sendMessage(JSON.stringify({messageType: "image",
                                                                         host: window.location.hostname,
                                                                         protocol: window.location.protocol,
                                                                         type: file.type,
-                                                                        payload: reader.result as string,
+                                                                        payload: reader.result,
                                                                         timestamp: date}));
                     self.eventMap.set(date, event.target as HTMLElement);
                     event.preventDefault();
