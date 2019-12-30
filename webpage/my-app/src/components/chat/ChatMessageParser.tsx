@@ -47,20 +47,26 @@ export class ChatMessageParser {
         }
         return ((<p dangerouslySetInnerHTML={{__html: tmp.innerHTML}}></p>));
     }
+
     pasteListener(event: React.ClipboardEvent<HTMLDivElement>, self: ChatMessageParser) {
         event.persist();
         if(event.clipboardData.files.length > 0 && !event.clipboardData.types.includes("text/html")) {
             Array.from(event.clipboardData.files).forEach((file) => {
-            var reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                const date = Date.now();
-                self.helperConnection?.sendMessage(JSON.stringify({messageType: "image", payload: reader.result as string, timestamp: date}));
-                self.eventMap.set(date, event.target as HTMLElement);
-                event.preventDefault();
-            }
-        });
-    }
+                var reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    const date = Date.now();
+                    self.helperConnection?.sendMessage(JSON.stringify({messageType: "image",
+                                                                        host: window.location.hostname,
+                                                                        protocol: window.location.protocol,
+                                                                        type: file.type,
+                                                                        payload: reader.result as string,
+                                                                        timestamp: date}));
+                    self.eventMap.set(date, event.target as HTMLElement);
+                    event.preventDefault();
+                }
+            });
+        }
     /*if(event.clipboardData.types.includes("text/plain")) {
         const element = event.clipboardData.getData("text/plain");
         (event.currentTarget as HTMLDivElement).nodeValue = element;

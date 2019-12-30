@@ -4,6 +4,7 @@ import * as url from "url";
 import * as tmp from "tmp";
 import * as fs from "fs";
 import * as path from "path";
+import * as mime from "mime-types"
 import { Brocker } from './Brocker';
 import { MumbleDataHelper } from "./MumbleDataHelper";
 
@@ -14,8 +15,9 @@ export class WebSocket {
     private helperSocket: ws.Server;
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
-    private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
+    private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "";
     private readonly dir = tmp.dirSync();
+    private readonly httpServerPort: number;
 
     constructor(mainPort: number, helperPort: number, webServerPort: number) {
         this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
@@ -27,6 +29,7 @@ export class WebSocket {
 
         this.httpServer.on('upgrade', (request, socket, head) => this.upgrade(request, socket, head) );
         this.httpServer.listen(webServerPort);
+        this.httpServerPort = webServerPort;
     }
 
     private handleMainConnection(ws: ws) {
@@ -45,17 +48,18 @@ export class WebSocket {
 
     private handleHelperConnection(ws: ws) {
         //TODO!
-        ws.on('message', (data) =>  { 
+        ws.on('message', (data) =>  {
             const message = JSON.parse(data.toString());
             if(message.messageType === "image") {
                 //console.log(message.payload);
                 const payload = this.urltoFile(message.payload);
-                const tmpobj = tmp.fileSync({dir: this.dir.name});
+                const extention = "." + (mime.extension(message.type) || "txt");
+                const tmpobj = tmp.fileSync({dir: this.dir.name, postfix: extention});
                 fs.write(tmpobj.fd, payload, (err) => {
                     if(err) {
                         console.log("Error on write: ", err);
                     } else {
-                        const filename = path.join(WebSocket.BASEPATH, "images", path.basename(tmpobj.name));
+                        const filename = message.protocol + "//" + message.host + ":" + this.httpServerPort + "/" + path.join(WebSocket.BASEPATH, "images", path.basename(tmpobj.name));
                         ws.send(JSON.stringify({messageType: message.messageType, payload: filename, timestamp: message.timestamp}));
                     }
                 })
@@ -101,9 +105,10 @@ export class WebSocket {
 
         if(pathname?.startsWith("/images")) {
             const fullName = path.join(this.dir.name, filename);
+            const type = mime.lookup(fullName);
             fs.exists(fullName, (exist) => {
                 fs.readFile(fullName, (err, data) => {
-                    //resource.setHeader('Content-type', map[ext] || 'text/plain' );
+                    resource.setHeader('Content-type', type || 'text/plain' );
                     resource.end(data);
                 });
             })
