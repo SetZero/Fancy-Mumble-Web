@@ -7,6 +7,8 @@ import * as path from "path";
 import * as mime from "mime-types"
 import { Brocker } from './Brocker';
 import { MumbleDataHelper } from "./MumbleDataHelper";
+import { PageCrawler } from "./utils/PageCrawler";
+import { Url } from "url";
 
 
 export class WebSocket {
@@ -19,6 +21,7 @@ export class WebSocket {
     private helperSocket: ws.Server;
     private readonly dir = tmp.dirSync({prefix: "mmbl_images_"});
     private readonly httpServerPort: number;
+    private readonly crawler: PageCrawler = new PageCrawler();
 
     constructor(mainPort: number, helperPort: number, webServerPort: number) {
         this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
@@ -44,26 +47,26 @@ export class WebSocket {
           }
         });
 
-        this.mainMumbleSocket.on('connection', (ws) => {this.handleMainConnection(ws)});
-        this.helperSocket.on('connection', (ws) => {this.handleHelperConnection(ws)});
+        this.mainMumbleSocket.on('connection', (socket) => {this.handleMainConnection(socket as ws)});
+        this.helperSocket.on('connection', (socket) => {this.handleHelperConnection(socket as ws)});
 
         this.httpServer.on('upgrade', (request, socket, head) => this.upgrade(request, socket, head) );
         this.httpServer.listen(webServerPort);
         this.httpServerPort = Number(process.env.MUMBLE_SERVER_WEB_PORT) || webServerPort;
     }
 
-    private handleMainConnection(ws: ws) {
+    private handleMainConnection(socket: ws) {
             console.log("new connection");
 
             const brocker = new Brocker(WebSocket.SERVER, WebSocket.PORT);
-            const dataHelper: MumbleDataHelper = new MumbleDataHelper(brocker, ws);
+            const dataHelper: MumbleDataHelper = new MumbleDataHelper(brocker, socket);
 
             brocker.on("data", (data) => {dataHelper.handleInput(data)});
             brocker.on('uncaughtException', (err) => { console.log(err); });
             brocker.on('error', (err) => { console.log(err); });
 
-            ws.on('message', (data) =>  brocker.repack(data));
-            ws.on('close', () => { brocker.close(); });
+            socket.on('message', (data) =>  brocker.repack(data));
+            socket.on('close', () => { brocker.close(); });
     }
 
     private handleHelperConnection(ws: ws) {
@@ -74,10 +77,17 @@ export class WebSocket {
                 case "image":
                     this.imageProcessing(ws, message);
                     break;
+                case "link":
+                    this.linkProcessing(ws, message);
+                    break;
                 default:
                     console.log("Unknown Message Type: " + message.messageType);
             }
         });
+    }
+
+    linkProcessing(ws: ws, message: any) {
+        this.crawler.getWebpage(url.parse(message.payload), (info) => { console.log("Got Info!") })
     }
 
     private imageProcessing(ws: ws, message: any) {

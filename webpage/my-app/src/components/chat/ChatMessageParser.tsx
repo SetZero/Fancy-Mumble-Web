@@ -88,9 +88,7 @@ export class ChatMessageParser {
         const checkItems = Array.from(text.childNodes);
         checkItems.filter((e) => e.nodeType !== Node.TEXT_NODE).forEach((e) => this.findLinks(e as HTMLElement));
         checkItems.push(text);
-        console.log(text.nodeType);
         checkItems.filter((e) => e.nodeType === Node.TEXT_NODE).forEach((e) => {
-            console.log("Text Node: " + e);
             const newContent = e.textContent?.replace(urlRegex, function(url) {
                 return '<a href="' + url + '">' + url + '</a>';
             }) ?? ""

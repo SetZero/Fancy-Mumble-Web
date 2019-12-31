@@ -16,7 +16,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/better-queue": "^3.8.2",
+    "@types/lru-cache": "^5.1.0",
     "@types/ws": "^6.0.4",
+    "better-queue": "^3.8.10",
     "mime-types": "^2.1.25",
     "ws": "^7.2.1"
   },
