@@ -26,26 +26,7 @@ export class WebSocket {
     constructor(mainPort: number, helperPort: number, webServerPort: number) {
         this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
         this.mainMumbleSocket = new ws.Server({ port: mainPort, noServer: true });
-        this.helperSocket = new ws.Server({ port: helperPort, noServer: true, perMessageDeflate: {
-            zlibDeflateOptions: {
-              // See zlib defaults.
-              chunkSize: 1024,
-              memLevel: 7,
-              level: 3
-            },
-            zlibInflateOptions: {
-              chunkSize: 10 * 1024
-            },
-            // Other options settable:
-            clientNoContextTakeover: true, // Defaults to negotiated value.
-            serverNoContextTakeover: true, // Defaults to negotiated value.
-            serverMaxWindowBits: 10, // Defaults to negotiated value.
-            // Below options specified as default values.
-            concurrencyLimit: 10, // Limits zlib concurrency for perf.
-            threshold: 1024 // Size (in bytes) below which messages
-            // should not be compressed.
-          }
-        });
+        this.helperSocket = new ws.Server({ port: helperPort, noServer: true });
 
         this.mainMumbleSocket.on('connection', (socket) => {this.handleMainConnection(socket as ws)});
         this.helperSocket.on('connection', (socket) => {this.handleHelperConnection(socket as ws)});
