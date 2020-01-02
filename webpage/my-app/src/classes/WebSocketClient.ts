@@ -4,14 +4,23 @@ import { LiteEvent } from './helper/EventHandler';
 export class WebSocketClient<T extends string | ArrayBuffer> {
     private dummy: T;
     private ws: WebSocket;
-    private messageOutQueue: Array<T>;
+    private messageOutQueue: Array<T> = [];
     private ready: boolean = false;
     private eventListener = new LiteEvent<T>();
     private pingTimeout: NodeJS.Timeout | undefined;
+    private host: string;
+    private enableHeartbeat: boolean;
 
     constructor(host: string, dummy: T, enableHeartbeat: boolean = false) {
         this.dummy = dummy;
+        this.host = host;
+        this.enableHeartbeat = enableHeartbeat;
         this.ws = new WebSocket(host);
+        this.startSocket(host, enableHeartbeat);
+    }
+
+    private startSocket(host: string, enableHeartbeat: boolean = false, initSocket: boolean = false) {
+        if(initSocket) this.ws = new WebSocket(host);
         this.messageOutQueue = [];
 
         this.ws.addEventListener("open", () => {
@@ -77,6 +86,7 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
         this.pingTimeout = setTimeout(() => {
             console.error("Helper Socket Closed!");
             this.ws.close();
+            this.startSocket(this.host, this.enableHeartbeat, true);
         }, 30000 + 1000);
       }
 }
