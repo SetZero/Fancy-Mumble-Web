@@ -117,7 +117,6 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   private updateScroll(){
     var element = document.getElementById("chat-content");
-    console.log(element);
     if(element) element.scrollTop = element.scrollHeight;
   }
 

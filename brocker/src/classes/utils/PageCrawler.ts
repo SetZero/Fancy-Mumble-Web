@@ -5,7 +5,7 @@ import Queue from "better-queue";
 import htmlparser2 from "htmlparser2"
 import * as url from "url";
 
-var fetchVideoInfo = require('youtube-info');
+const fetchVideoInfo = require('youtube-info');
 
 class PageInfo {
     title: string;
@@ -47,6 +47,7 @@ export class PageCrawler {
     }
 
     private processPage(input: Url, cb: Queue.ProcessFunctionCb<PageInfo>) {
+        console.log("Request: %s", input.href);
 
         switch(input.hostname) {
             case "www.youtube.com":
