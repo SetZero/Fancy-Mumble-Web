@@ -32,7 +32,6 @@ export class ChatMessageParser {
 
             if(message.messageType === "link") {
                 var tmp = document.createElement("DIV");
-                console.log(message.payload.description);
                 tmp.innerHTML = (message.payload.description as string);
 
                 const content = (<Card style={{ width: '18rem' }}>

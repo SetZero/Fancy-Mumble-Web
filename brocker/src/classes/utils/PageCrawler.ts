@@ -34,7 +34,6 @@ export class PageCrawler {
     }
 
     getWebpage(page: Url, callback: (info: PageInfo) => void) {
-        console.log("crawling...");
         const pageInfo = this.cache.get(page.href ?? "");
         if(!pageInfo) {
             this.requestQueue
@@ -46,7 +45,6 @@ export class PageCrawler {
     }
 
     private processPage(input: Url, cb: Queue.ProcessFunctionCb<PageInfo>) {
-        console.log("Crawling: %s", input.hostname);
 
         switch(input.hostname) {
             case "www.youtube.com":
