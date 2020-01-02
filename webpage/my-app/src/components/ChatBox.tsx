@@ -16,7 +16,6 @@ export class ChatBox extends React.Component<ChatBoxProps, ChatBoxState> {
 
     addMessage(message: ChatMessageClass) {
         this.state.messages.push(message);
-        console.log("Message: " + message.user.$username);
     }
 
     render() {

@@ -92,7 +92,6 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     this.childRef.current?.addMessage(
       new ChatMessageClass(user, date, output)
     );
-    this.setState({value: ''});
     this.updateScroll();
   }
 
@@ -101,6 +100,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
     this.mumbleConnection?.sendMessageToCurrentChannel(this.state.value);
     if(this.state.selfUser) {
       this.addMessage(this.state.selfUser, new Date(), this.state.value);
+      this.setState({value: ''});
     }
     event.preventDefault();
   }

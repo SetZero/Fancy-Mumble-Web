@@ -11,7 +11,7 @@ interface ChannelState {
 }
 
 export class ChannelComponent extends React.Component<ChannelProps, ChannelState> {
-    private readonly maxChannelLength = 35;
+    private readonly maxChannelLength = 30;
 
     constructor(props: ChannelProps) {
         super(props);

@@ -21,7 +21,8 @@
     "@types/ws": "^6.0.4",
     "better-queue": "^3.8.10",
     "mime-types": "^2.1.25",
-    "ws": "^7.2.1"
+    "ws": "^7.2.1",
+    "youtube-info": "^1.3.2"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.0",

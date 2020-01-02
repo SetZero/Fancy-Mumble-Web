@@ -1,9 +1,23 @@
 import LRUCache, {Options} from "lru-cache";
 import { Url } from "url";
 import Queue from "better-queue"
+import * as url from "url";
+
+var fetchVideoInfo = require('youtube-info');
 
 class PageInfo {
-    
+    title: string;
+    description: string;
+    image: Url;
+    link: Url;
+
+
+	constructor(title: string, description: string, image: Url, link: Url) {
+        this.title = title;
+        this.description = description;
+        this.image = image;
+        this.link = link;
+	}
 }
 
 export class PageCrawler {
@@ -21,7 +35,7 @@ export class PageCrawler {
 
     getWebpage(page: Url, callback: (info: PageInfo) => void) {
         console.log("crawling...");
-        const pageInfo = this.cache.get(page.toString());
+        const pageInfo = this.cache.get(page.href ?? "");
         if(!pageInfo) {
             this.requestQueue
             .push(page)
@@ -34,9 +48,26 @@ export class PageCrawler {
     private processPage(input: Url, cb: Queue.ProcessFunctionCb<PageInfo>) {
         console.log("Crawling: %s", input.hostname);
 
-        const info = new PageInfo();
-        this.cache.set(input.toString(), info);
+        switch(input.hostname) {
+            case "www.youtube.com":
+                this.handleYoutube(input, (info) => {
+                    this.cache.set(input.href ?? "", info);
+                    cb(null, info);
+                });
+                break;
+            default:
+        }
 
-        cb(null, info);
+    }
+    handleYoutube(input: Url, cb: (info: PageInfo) => void) {
+        const query = input.query as any;
+        if(query) {
+            console.log("Query!");
+            fetchVideoInfo(query.v, (err: any, videoInfo: any) => {
+                if(videoInfo) {
+                    cb(new PageInfo(videoInfo.title, videoInfo.description, url.parse(videoInfo.thumbnailUrl), url.parse(videoInfo.url)));
+                }
+            });
+        }
     }
 }

@@ -87,7 +87,10 @@ export class WebSocket {
     }
 
     linkProcessing(ws: ws, message: any) {
-        this.crawler.getWebpage(url.parse(message.payload), (info) => { console.log("Got Info!") })
+        this.crawler.getWebpage(url.parse(message.payload, true), (info) => {
+             console.log("Got Info!");
+             ws.send(JSON.stringify({messageType: message.messageType, timestamp: message.timestamp, payload: info}));
+        });
     }
 
     private imageProcessing(ws: ws, message: any) {

@@ -2,11 +2,13 @@ import React from "react";
 import { SyntaxHighlighter } from "./SyntaxHighlighter";
 import DOMPurify from "dompurify";
 import { WebSocketClient } from "../../classes/WebSocketClient";
+import Card from 'react-bootstrap/Card';
+import ReactDOM from "react-dom";
 
 export class ChatMessageParser {
     private static readonly codeBlock: RegExp = /(```([A-Za-z]+)?\n?(.*?)\n?```)/;
     private helperConnection: WebSocketClient<string> | undefined;
-    private eventMap = new Map<number, HTMLElement>();
+    private eventMap = new Map<number, HTMLElement | React.RefObject<HTMLElement>>();
 
     /**
      * Getter $helperConnection
@@ -20,12 +22,41 @@ export class ChatMessageParser {
         this.helperConnection = value;
         this.helperConnection?.addMessageListener((data) => {
             const message = JSON.parse(data as string);
+            const element = this.eventMap.get(message.timestamp);
+            this.eventMap.delete(message.timestamp);
+
             if(message.messageType === "error") {
                 console.error(message.payload)
                 return;
             }
-            const element = this.eventMap.get(message.timestamp);
-            this.eventMap.delete(message.timestamp);
+
+            if(message.messageType === "link") {
+                var tmp = document.createElement("DIV");
+                console.log(message.payload.description);
+                tmp.innerHTML = (message.payload.description as string);
+
+                const content = (<Card style={{ width: '18rem' }}>
+                            <a href={message.payload.link.href}>
+                                <Card.Img variant="top" src={message.payload.image.href} />
+                            </a>
+                            <Card.Body>
+                            <Card.Title>
+                                <a href={message.payload.link.href}>
+                                    {message.payload.title}
+                                </a>
+                            </Card.Title>
+                            <Card.Text>
+                                {tmp.innerText.substr(0, 150)}
+                            </Card.Text>
+                            </Card.Body>
+                        </Card>);
+                const container = (element as React.RefObject<HTMLElement>)?.current;
+                if(container) {
+                    ReactDOM.render(content, container);
+                }
+                return;
+            }
+
             const link: HTMLAnchorElement = document.createElement("a");
             link.setAttribute("href", message.payload);
             link.setAttribute("target", "_blank");
@@ -33,17 +64,18 @@ export class ChatMessageParser {
             img.setAttribute("src", message.payload);
             link.appendChild(img);
             link.append("(Image)");
-            element?.appendChild(link);
+            (element as HTMLElement)?.appendChild(link);
 
             console.log(message.payload);
         })
     }
 
     parse(message: string) {
+        let insertRef: React.RefObject<HTMLDivElement> = React.createRef();
         var tmp = document.createElement("DIV");
         tmp.innerHTML = DOMPurify.sanitize(message);
         this.findLinks(tmp);
-        this.improveLinks(tmp);
+        this.improveLinks(tmp, insertRef);
         const stripped = tmp.innerText || tmp.textContent || "";
 
         const plainmessage = stripped;
@@ -54,7 +86,7 @@ export class ChatMessageParser {
             let replace = (<SyntaxHighlighter lang={language}>{content}</SyntaxHighlighter>);
             return replace;
         }
-        return ((<p dangerouslySetInnerHTML={{__html: tmp.innerHTML}}></p>));
+        return ((<div ref={insertRef} dangerouslySetInnerHTML={{__html: tmp.innerHTML}}></div>));
     }
 
     pasteListener(event: React.ClipboardEvent<HTMLDivElement>, self: ChatMessageParser) {
@@ -76,11 +108,6 @@ export class ChatMessageParser {
                 }
             });
         }
-    /*if(event.clipboardData.types.includes("text/plain")) {
-        const element = event.clipboardData.getData("text/plain");
-        (event.currentTarget as HTMLDivElement).nodeValue = element;
-        event.preventDefault();
-    }*/
     }
 
     private findLinks(text: HTMLElement) {
@@ -99,13 +126,15 @@ export class ChatMessageParser {
         })
     }
 
-    private improveLinks(dom: HTMLElement) {
+    private improveLinks(dom: HTMLElement, ref: React.RefObject<HTMLElement>) {
         const links = dom.getElementsByTagName("a");
         Array.from(links).forEach(element => {
             element.setAttribute("target", "_blank");
             const location = element.getAttribute("href");
             if(location) {
-                this.helperConnection?.sendMessage(JSON.stringify({messageType: "link", payload: location}));
+                const date = Date.now();
+                this.helperConnection?.sendMessage(JSON.stringify({messageType: "link", payload: location, timestamp: date}));
+                this.eventMap.set(date, ref);
             }
         });
     }
