@@ -50,7 +50,6 @@ export class PageCrawler {
 
         switch(input.hostname) {
             case "www.youtube.com":
-            case "youtube.com":
                 this.handleYoutube(input, (info) => {
                     this.cache.set(input.href ?? "", info);
                     cb(null, info);
@@ -75,27 +74,41 @@ export class PageCrawler {
             const parser = new htmlparser2.Parser({
                 onopentag(name, attribs) {
                     if(name === "meta") {
-                        switch(attribs.property) {
-                            case "og:title":
-                                title = attribs.content;
-                                break;
-                            case "og:description":
-                                description = attribs.content;
-                                break;
-                            case "og:image":
-                                thumbnailUrl = attribs.content;
-                                break;
-                            case "og:url":
-                                pageUrl = attribs.content;
-                                break;
-                            default:
-                                break;
+                        if(attribs.property) {
+                            switch(attribs.property.trim()) {
+                                case "og:title":
+                                    title = attribs.content;
+                                    break;
+                                case "og:description":
+                                    description = attribs.content;
+                                    break;
+                                case "og:image":
+                                    thumbnailUrl = attribs.content;
+                                    break;
+                                case "og:url":
+                                    pageUrl = attribs.content;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+
+                        if(attribs.itemprop) {
+                            switch(attribs.itemprop.trim()) {
+                                case "headline":
+                                    title = attribs.content;
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
                     }
                 }
             });
             parser.write(body);
             parser.end();
+            if(pageUrl === "") pageUrl = input.href ?? "";
+            console.log("%s | %s | %s", pageUrl, title, thumbnailUrl)
             if(pageUrl !== "" && title !== "" && thumbnailUrl !== "") {
                 cb(new PageInfo(title, description, url.parse(thumbnailUrl), url.parse(pageUrl)));
             }
