@@ -43,8 +43,9 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   connect(host: string, user: string) {
     this.mumbleConnection = new Mumble(host, user);
-    this.helperConnection = new WebSocketClient(host + "helper", "" as string);
+    this.helperConnection = new WebSocketClient(host + "helper", "" as string, true);
     this.messageParser.$helperConnection = this.helperConnection;
+
     this.mumbleConnection.serverConfigEvent.on((e) => {
       let newState = {location: host, selfUser: this.mumbleConnection?.$userList.get(this.mumbleConnection.$mySessionID ?? -1)};
       this.setState(newState);

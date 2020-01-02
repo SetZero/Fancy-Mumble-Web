@@ -19,6 +19,7 @@ export class WebSocket {
     private readonly httpServer: http.Server;
     private mainMumbleSocket: ws.Server;
     private helperSocket: ws.Server;
+    private socketStatus = {helperAlive: true, mainAlive: true};
     private readonly dir = tmp.dirSync({prefix: "mmbl_images_"});
     private readonly httpServerPort: number;
     private readonly crawler: PageCrawler = new PageCrawler();
@@ -27,6 +28,7 @@ export class WebSocket {
         this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
         this.mainMumbleSocket = new ws.Server({ port: mainPort, noServer: true });
         this.helperSocket = new ws.Server({ port: helperPort, noServer: true });
+        setInterval(() => { this.pingClients() }, 30000);
 
         this.mainMumbleSocket.on('connection', (socket) => {this.handleMainConnection(socket as ws)});
         this.helperSocket.on('connection', (socket) => {this.handleHelperConnection(socket as ws)});
@@ -34,6 +36,16 @@ export class WebSocket {
         this.httpServer.on('upgrade', (request, socket, head) => this.upgrade(request, socket, head) );
         this.httpServer.listen(webServerPort);
         this.httpServerPort = Number(process.env.MUMBLE_SERVER_WEB_PORT) || webServerPort;
+    }
+
+    pingClients() {
+        const self = this;
+        this.helperSocket.clients.forEach(function each(ws) {
+            if (self.socketStatus.helperAlive === false) return ws.terminate();
+
+            self.socketStatus.helperAlive = false;
+            ws.ping((err: Error) => { console.log(err)});
+          });
     }
 
     private handleMainConnection(socket: ws) {
@@ -51,6 +63,8 @@ export class WebSocket {
     }
 
     private handleHelperConnection(ws: ws) {
+        this.socketStatus.helperAlive = true;
+        ws.on('pong', () => { this.socketStatus.helperAlive = true; });
         //TODO!
         ws.on('message', (data) =>  {
             const message = JSON.parse(data.toString());

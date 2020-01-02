@@ -7,15 +7,27 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
     private messageOutQueue: Array<T>;
     private ready: boolean = false;
     private eventListener = new LiteEvent<T>();
+    private pingTimeout: NodeJS.Timeout | undefined;
 
-    constructor(host: string, dummy: T) {
+    constructor(host: string, dummy: T, enableHeartbeat: boolean = false) {
         this.dummy = dummy;
         this.ws = new WebSocket(host);
         this.messageOutQueue = [];
 
-        this.ws.addEventListener("open", () => { this.workOnQueue(); });
+        this.ws.addEventListener("open", () => {
+            this.workOnQueue();
+
+            if(enableHeartbeat)
+                this.heartbeat();
+        });
         this.ws.addEventListener("message", (event) => { this.handleMessage(event); })
         this.ws.addEventListener("close", () => {this.ready = false;});
+        if(enableHeartbeat) {
+            this.ws.addEventListener('ping', this.heartbeat);
+            this.ws.addEventListener('close', () => {
+                if(this.pingTimeout !== undefined) clearTimeout(this.pingTimeout);
+            });
+        }
     }
 
     public sendMessage(message: T) {
@@ -57,4 +69,14 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
             }
         }
     }
+
+    private heartbeat() {
+        if(this.pingTimeout !== undefined) 
+            clearTimeout(this.pingTimeout);
+
+        this.pingTimeout = setTimeout(() => {
+            console.error("Helper Socket Closed!");
+            this.ws.close();
+        }, 30000 + 1000);
+      }
 }
