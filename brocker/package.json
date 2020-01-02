@@ -21,12 +21,15 @@
     "@types/ws": "^6.0.4",
     "better-queue": "^3.8.10",
     "mime-types": "^2.1.25",
+    "request": "^2.88.0",
     "ws": "^7.2.1",
     "youtube-info": "^1.3.2"
   },
   "devDependencies": {
+    "@types/htmlparser2": "^3.10.1",
     "@types/mime-types": "^2.1.0",
     "@types/node": "^10.0.3",
+    "@types/request": "^2.48.4",
     "@types/tmp": "^0.1.0",
     "gts": "^1.1.2",
     "typescript": "~3.7.0"

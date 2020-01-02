@@ -1,6 +1,8 @@
 import LRUCache, {Options} from "lru-cache";
 import { Url } from "url";
-import Queue from "better-queue"
+import request, {} from "request";
+import Queue from "better-queue";
+import htmlparser2 from "htmlparser2"
 import * as url from "url";
 
 var fetchVideoInfo = require('youtube-info');
@@ -48,14 +50,56 @@ export class PageCrawler {
 
         switch(input.hostname) {
             case "www.youtube.com":
+            case "youtube.com":
                 this.handleYoutube(input, (info) => {
                     this.cache.set(input.href ?? "", info);
                     cb(null, info);
                 });
                 break;
             default:
+                this.handleGenericPage(input, (info) => {
+                    this.cache.set(input.href ?? "", info);
+                    cb(null, info);
+                });
         }
 
+    }
+    handleGenericPage(input: Url, cb: (info: PageInfo) => void) {
+        if(!input.href) return;
+        request(input.href, (error, response, body) => {
+            let title = "";
+            let description = "";
+            let thumbnailUrl = "";
+            let pageUrl = "";
+
+            const parser = new htmlparser2.Parser({
+                onopentag(name, attribs) {
+                    if(name === "meta") {
+                        switch(attribs.property) {
+                            case "og:title":
+                                title = attribs.content;
+                                break;
+                            case "og:description":
+                                description = attribs.content;
+                                break;
+                            case "og:image":
+                                thumbnailUrl = attribs.content;
+                                break;
+                            case "og:url":
+                                pageUrl = attribs.content;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            });
+            parser.write(body);
+            parser.end();
+            if(pageUrl !== "" && title !== "" && thumbnailUrl !== "") {
+                cb(new PageInfo(title, description, url.parse(thumbnailUrl), url.parse(pageUrl)));
+            }
+        });
     }
     handleYoutube(input: Url, cb: (info: PageInfo) => void) {
         const query = input.query as any;
