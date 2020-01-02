@@ -44,7 +44,7 @@ export class WebSocket {
             if (self.socketStatus.helperAlive === false) return ws.terminate();
 
             self.socketStatus.helperAlive = false;
-            ws.ping((err: Error) => { console.log(err)});
+            ws.ping((err: Error) => { });
           });
     }
 
