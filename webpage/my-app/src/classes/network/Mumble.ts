@@ -20,7 +20,7 @@ export class Mumble {
     private channelList: Map<number, Channel> = new Map();
 
     constructor(location: string, username: string) {
-        this.client = new WebSocketClient(location, new ArrayBuffer(0), true);
+        this.client = new WebSocketClient(location, new ArrayBuffer(0), true, false);
         this.setup(username);
         this.serverConfigListener.on(e => {
             this.initPing();

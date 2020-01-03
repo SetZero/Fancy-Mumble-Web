@@ -9,8 +9,10 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
     private host: string;
     private enableHeartbeat: boolean;
     private readonly timeoutListener = new LiteEvent<string>();
+    private tryReconnect: boolean;
 
-    constructor(host: string, dummy: T, enableHeartbeat: boolean = false) {
+    constructor(host: string, dummy: T, enableHeartbeat: boolean = false, tryReconnect: boolean = true) {
+        this.tryReconnect = tryReconnect;
         this.dummy = dummy;
         this.host = host;
         this.enableHeartbeat = enableHeartbeat;
@@ -20,6 +22,7 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
     }
 
     private startSocket(host: string, enableHeartbeat: boolean = false, initSocket: boolean = false) {
+        console.log("creating socket...");
         if(initSocket) this.ws = new WebSocket(host);
         this.messageOutQueue = [];
 
@@ -74,7 +77,7 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
         if(this.ws.readyState === WebSocket.CLOSED) {
             console.error("WS Closed!");
             this.timeoutListener.trigger("Timeout");
-            this.startSocket(this.host, this.enableHeartbeat, true);
+            if(this.tryReconnect) this.startSocket(this.host, this.enableHeartbeat, true);
         }
     }
 

@@ -9,22 +9,36 @@ import { Brocker } from './Brocker';
 import { MumbleDataHelper } from "./MumbleDataHelper";
 import { PageCrawler } from "./utils/PageCrawler";
 import { Url } from "url";
+import WebSocket = require("ws");
 
+class WebSocketStatus {
+    readonly status: Map<WebSocket, boolean> = new Map();
+}
 
-export class WebSocket {
+enum WebSocketTypes {
+    MUMBLE_MAIN,
+    HELPER
+}
+
+export class WebSocketHelper {
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
     private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
     private static readonly MAX_IMAGE_SIZE: number = 10 * 1024 * 1024;
+
+    private readonly httpServerPort: number;
     private readonly httpServer: http.Server;
     private mainMumbleSocket: ws.Server;
     private helperSocket: ws.Server;
-    private socketStatus = {helperAlive: true, mainAlive: true};
+
+    private socketStatus: Map<WebSocketTypes, WebSocketStatus> = new Map();
     private readonly dir = tmp.dirSync({prefix: "mmbl_images_"});
-    private readonly httpServerPort: number;
     private readonly crawler: PageCrawler = new PageCrawler();
 
     constructor(mainPort: number, helperPort: number, webServerPort: number) {
+        this.socketStatus.set(WebSocketTypes.MUMBLE_MAIN, new WebSocketStatus());
+        this.socketStatus.set(WebSocketTypes.HELPER, new WebSocketStatus());
+
         this.httpServer = http.createServer((req, res) => {this.handleWebConnection(req, res)});
         this.mainMumbleSocket = new ws.Server({ port: mainPort, noServer: true });
         this.helperSocket = new ws.Server({ port: helperPort, noServer: true });
@@ -38,31 +52,33 @@ export class WebSocket {
         this.httpServerPort = Number(process.env.MUMBLE_SERVER_WEB_PORT) || webServerPort;
     }
 
+    private handlePingStatus(socket: WebSocket, type: WebSocketTypes) {
+        if (this.socketStatus.get(type)?.status.get(socket) === false) {
+            this.socketStatus.get(type)?.status.delete(socket);
+            return socket.terminate();
+        }
+
+        this.socketStatus.get(type)?.status.set(socket, false);
+        socket.ping((err: Error) => { });
+    }
+
     pingClients() {
-        const self = this;
-        this.helperSocket.clients.forEach(function each(ws) {
-            if (self.socketStatus.helperAlive === false) return ws.terminate();
+        this.helperSocket.clients.forEach((socket) => { this.handlePingStatus(socket, WebSocketTypes.HELPER) } );
+        this.mainMumbleSocket.clients.forEach((socket) => { this.handlePingStatus(socket, WebSocketTypes.MUMBLE_MAIN) } );
+    }
 
-            self.socketStatus.helperAlive = false;
-            ws.ping((err: Error) => { });
-        });
-
-        this.mainMumbleSocket.clients.forEach(function each(ws) {
-            if (self.socketStatus.mainAlive === false) return ws.terminate();
-
-            self.socketStatus.mainAlive = false;
-            ws.ping((err: Error) => { });
+    private refreshPing(socket: WebSocket, type: WebSocketTypes) {
+        this.socketStatus.get(type)?.status.set(socket, true);
+        socket.on('pong', () => {
+            this.socketStatus.get(type)?.status.set(socket, true);
         });
     }
 
     private handleMainConnection(socket: ws) {
-        this.socketStatus.mainAlive = true;
-        socket.on('pong', () => {
-            this.socketStatus.mainAlive = true; 
-        });
+        this.refreshPing(socket, WebSocketTypes.MUMBLE_MAIN);
         console.log("new connection");
 
-        const brocker = new Brocker(WebSocket.SERVER, WebSocket.PORT);
+        const brocker = new Brocker(WebSocketHelper.SERVER, WebSocketHelper.PORT);
         const dataHelper: MumbleDataHelper = new MumbleDataHelper(brocker, socket);
 
         brocker.on("data", (data) => {dataHelper.handleInput(data)});
@@ -73,20 +89,17 @@ export class WebSocket {
         socket.on('close', () => { brocker.close(); });
     }
 
-    private handleHelperConnection(ws: ws) {
-        this.socketStatus.helperAlive = true;
-        ws.on('pong', () => {
-;             this.socketStatus.helperAlive = true; 
-        });
+    private handleHelperConnection(socket: ws) {
+        this.refreshPing(socket, WebSocketTypes.HELPER);
         //TODO!
-        ws.on('message', (data) =>  {
+        socket.on('message', (data) =>  {
             const message = JSON.parse(data.toString());
             switch(message.messageType) {
                 case "image":
-                    this.imageProcessing(ws, message);
+                    this.imageProcessing(socket, message);
                     break;
                 case "link":
-                    this.linkProcessing(ws, message);
+                    this.linkProcessing(socket, message);
                     break;
                 default:
                     console.log("Unknown Message Type: " + message.messageType);
@@ -104,7 +117,7 @@ export class WebSocket {
     private imageProcessing(ws: ws, message: any) {
         //const payload = this.urltoFile(message.payload);
         const payload = Buffer.from(message.payload.split(';base64,').pop());
-        if(payload.byteLength >= WebSocket.MAX_IMAGE_SIZE) {
+        if(payload.byteLength >= WebSocketHelper.MAX_IMAGE_SIZE) {
             console.log("Failure!");
             ws.send(JSON.stringify({messageType: "error", payload: "Maximum image size exceeded!", timestamp: message.timestamp}));
             return;
@@ -115,7 +128,7 @@ export class WebSocket {
             if(err) {
                 console.log("Error on write: ", err);
             } else {
-                const filename = message.protocol + "//" + message.host + ":" + this.httpServerPort + "/" + path.join(WebSocket.BASEPATH, path.basename(tmpobj.name));
+                const filename = message.protocol + "//" + message.host + ":" + this.httpServerPort + "/" + path.join(WebSocketHelper.BASEPATH, path.basename(tmpobj.name));
                 console.log(filename);
                 ws.send(JSON.stringify({messageType: message.messageType, payload: filename, timestamp: message.timestamp}));
             }
@@ -146,7 +159,7 @@ export class WebSocket {
         const pathname = url.parse(request.url).pathname;
         const filename = path.parse(pathname ?? "").base;
 
-        if(pathname?.startsWith("/" + WebSocket.BASEPATH)) {
+        if(pathname?.startsWith("/" + WebSocketHelper.BASEPATH)) {
             const fullName = path.join(this.dir.name, filename);
             const type = mime.lookup(fullName);
             fs.exists(fullName, (exist) => {
