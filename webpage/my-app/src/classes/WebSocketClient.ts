@@ -5,17 +5,17 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
     private dummy: T;
     private ws: WebSocket;
     private messageOutQueue: Array<T> = [];
-    private ready: boolean = false;
     private eventListener = new LiteEvent<T>();
-    private pingTimeout: NodeJS.Timeout | undefined;
     private host: string;
     private enableHeartbeat: boolean;
+    private readonly timeoutListener = new LiteEvent<string>();
 
     constructor(host: string, dummy: T, enableHeartbeat: boolean = false) {
         this.dummy = dummy;
         this.host = host;
         this.enableHeartbeat = enableHeartbeat;
         this.ws = new WebSocket(host);
+        this.ws.onerror = () => { this.timeoutListener.trigger("unable to connect"); };
         this.startSocket(host, enableHeartbeat);
     }
 
@@ -23,24 +23,16 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
         if(initSocket) this.ws = new WebSocket(host);
         this.messageOutQueue = [];
 
-        this.ws.addEventListener("open", () => {
-            this.workOnQueue();
-
-            if(enableHeartbeat)
-                this.heartbeat();
-        });
+        this.ws.addEventListener("open", () => { this.workOnQueue(); });
         this.ws.addEventListener("message", (event) => { this.handleMessage(event); })
-        this.ws.addEventListener("close", () => {this.ready = false;});
+        //this.ws.addEventListener("close", () => {this.ready = false;});
         if(enableHeartbeat) {
-            this.ws.addEventListener('ping', this.heartbeat);
-            this.ws.addEventListener('close', () => {
-                if(this.pingTimeout !== undefined) clearTimeout(this.pingTimeout);
-            });
+           setInterval(() => {this.heartbeat()}, 30000);
         }
     }
 
     public sendMessage(message: T) {
-        if(!this.ready) {
+        if(this.ws.readyState !== WebSocket.OPEN) {
             this.messageOutQueue.push(message);
         } else {
             this.ws.send(message);
@@ -67,7 +59,6 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
     }
 
     private workOnQueue() {
-        this.ready = true;
         if(this.messageOutQueue === undefined) return;
 
         let element;
@@ -80,13 +71,14 @@ export class WebSocketClient<T extends string | ArrayBuffer> {
     }
 
     private heartbeat() {
-        if(this.pingTimeout !== undefined) 
-            clearTimeout(this.pingTimeout);
-
-        this.pingTimeout = setTimeout(() => {
-            console.error("Helper Socket Closed!");
-            this.ws.close();
+        if(this.ws.readyState === WebSocket.CLOSED) {
+            console.error("WS Closed!");
+            this.timeoutListener.trigger("Timeout");
             this.startSocket(this.host, this.enableHeartbeat, true);
-        }, 30000 + 1000);
-      }
+        }
+    }
+
+    addTimeoutListener(listener: (str: string | undefined) => any) {
+        this.timeoutListener.on(listener);
+    }
 }

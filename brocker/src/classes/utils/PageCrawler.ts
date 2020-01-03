@@ -8,18 +8,25 @@ import * as url from "url";
 const fetchVideoInfo = require('youtube-info');
 
 class PageInfo {
-    title: string;
-    description: string;
-    image: Url;
-    link: Url;
+    title: string = "";
+    description: string = "";
+    image: Url = {};
+    link: Url = {};
+    hasContent: boolean = false;
 
-
-	constructor(title: string, description: string, image: Url, link: Url) {
-        this.title = title;
-        this.description = description;
-        this.image = image;
-        this.link = link;
+	constructor(title?: string, description?: string, image?: Url, link?: Url) {
+        if(title) this.title = title;
+        if(description) this.description = description;
+        if(image) this.image = image;
+        if(link) this.link = link;
+        if(title && image && link) this.hasContent = true;
 	}
+}
+
+enum LinkInfo {
+    Ok,
+    LinkNotFound,
+    GeneralError
 }
 
 export class PageCrawler {
@@ -36,12 +43,14 @@ export class PageCrawler {
     }
 
     getWebpage(page: Url, callback: (info: PageInfo) => void) {
+        console.log("Process page...");
+
         const pageInfo = this.cache.get(page.href ?? "");
         if(!pageInfo) {
             this.requestQueue
             .push(page)
             .on("finish", (result) => { callback(result) });
-        } else {
+        } else if(pageInfo.hasContent) {
             callback(pageInfo);
         }
     }
@@ -57,16 +66,22 @@ export class PageCrawler {
                 });
                 break;
             default:
-                this.handleGenericPage(input, (info) => {
-                    this.cache.set(input.href ?? "", info);
-                    cb(null, info);
+                this.handleGenericPage(input, (status, info) => {
+                    if(status === LinkInfo.Ok && info) {
+                        this.cache.set(input.href ?? "", info);
+                        cb(null, info);
+                    } else {
+                        this.cache.set(input.href ?? "", new PageInfo());
+                        cb(status, undefined);
+                    }
                 });
         }
 
     }
-    handleGenericPage(input: Url, cb: (info: PageInfo) => void) {
+    handleGenericPage(input: Url, cb: (status: LinkInfo, info?: PageInfo) => void) {
         if(!input.href) return;
         request(input.href, (error, response, body) => {
+            if(error) cb(LinkInfo.GeneralError);
             let title = "";
             let description = "";
             let thumbnailUrl = "";
@@ -111,7 +126,9 @@ export class PageCrawler {
             if(pageUrl === "") pageUrl = input.href ?? "";
             console.log("%s | %s | %s", pageUrl, title, thumbnailUrl)
             if(pageUrl !== "" && title !== "" && thumbnailUrl !== "") {
-                cb(new PageInfo(title, description, url.parse(thumbnailUrl), url.parse(pageUrl)));
+                cb(LinkInfo.Ok, new PageInfo(title, description, url.parse(thumbnailUrl), url.parse(pageUrl)));
+            } else {
+                cb(LinkInfo.LinkNotFound);
             }
         });
     }

@@ -12,6 +12,7 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Col from 'react-bootstrap/Col';
 import Alert from 'react-bootstrap/Alert';
 import Spinner from 'react-bootstrap/Spinner';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export interface ConnectProps {
 }
@@ -127,6 +128,7 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
     render() {
         return (
             <div className="h-100">
+                <ErrorDisplay></ErrorDisplay>
                 <Container className="h-100 row h-100 justify-content-center align-items-center" style={{margin: "0 auto"}}  id="loginWrapper">
                     <Form  onSubmit={this.handleSubmit}>
                         <Row><Col id="login-error-viewer"></Col></Row>
@@ -166,7 +168,7 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
                         </Row>
                     </Form>
                 </Container>
-                <div ref={this.wrapper} id="chatWrapper" className="h-100"></div>
+                <div ref={this.wrapper} id="chatWrapper"></div>
             </div>
         )
     }

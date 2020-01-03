@@ -20,7 +20,7 @@ export class Mumble {
     private channelList: Map<number, Channel> = new Map();
 
     constructor(location: string, username: string) {
-        this.client = new WebSocketClient(location, new ArrayBuffer(0));
+        this.client = new WebSocketClient(location, new ArrayBuffer(0), true);
         this.setup(username);
         this.serverConfigListener.on(e => {
             this.initPing();
@@ -35,6 +35,8 @@ export class Mumble {
         this.on(NetworkMessage.UserRemove, (data) => {this.manageLeave(data as UserRemove)});
         this.on(NetworkMessage.Reject, (data) => {this.manageError(data as Reject)});
         this.on(NetworkMessage.ServerConfig, (data) => {this.manageConfig(data as ServerConfig)});
+
+        this.client.addTimeoutListener((str) => { document.dispatchEvent(new CustomEvent("error", { detail: "connection closed: " + str })); })
     }
     manageChannels(channelInfo: ChannelState): void {
         const id = channelInfo.getChannelId();
@@ -257,7 +259,6 @@ export class Mumble {
                 break;
             case NetworkMessage.TextMessage:
                 data = TextMessage.deserializeBinary(new Uint8Array(buffer));
-                console.log(data.toObject());
                 break;
             case NetworkMessage.UserRemove:
                 data = UserRemove.deserializeBinary(new Uint8Array(buffer));

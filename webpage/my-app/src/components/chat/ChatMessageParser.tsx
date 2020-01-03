@@ -26,7 +26,7 @@ export class ChatMessageParser {
             this.eventMap.delete(message.timestamp);
 
             if(message.messageType === "error") {
-                console.error(message.payload)
+                document.dispatchEvent(new CustomEvent("error", { detail: message.payload }));
                 return;
             }
 
@@ -35,12 +35,12 @@ export class ChatMessageParser {
                 tmp.innerHTML = (message.payload.description as string);
 
                 const content = (<Card style={{ width: '18rem' }}>
-                            <a href={message.payload.link.href}>
+                            <a target="_blank" href={message.payload.link.href} rel="noopener noreferrer">
                                 <Card.Img variant="top" src={message.payload.image.href} />
                             </a>
                             <Card.Body>
                             <Card.Title>
-                                <a href={message.payload.link.href}>
+                                <a target="_blank" href={message.payload.link.href} rel="noopener noreferrer">
                                     {message.payload.title}
                                 </a>
                             </Card.Title>
@@ -59,6 +59,7 @@ export class ChatMessageParser {
             const link: HTMLAnchorElement = document.createElement("a");
             link.setAttribute("href", message.payload);
             link.setAttribute("target", "_blank");
+            link.setAttribute("rel", "noopener noreferrer");
             const img: HTMLImageElement = document.createElement("img");
             img.setAttribute("src", message.payload);
             link.appendChild(img);

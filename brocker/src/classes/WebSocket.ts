@@ -45,26 +45,39 @@ export class WebSocket {
 
             self.socketStatus.helperAlive = false;
             ws.ping((err: Error) => { });
-          });
+        });
+
+        this.mainMumbleSocket.clients.forEach(function each(ws) {
+            if (self.socketStatus.mainAlive === false) return ws.terminate();
+
+            self.socketStatus.mainAlive = false;
+            ws.ping((err: Error) => { });
+        });
     }
 
     private handleMainConnection(socket: ws) {
-            console.log("new connection");
+        this.socketStatus.mainAlive = true;
+        socket.on('pong', () => {
+            this.socketStatus.mainAlive = true; 
+        });
+        console.log("new connection");
 
-            const brocker = new Brocker(WebSocket.SERVER, WebSocket.PORT);
-            const dataHelper: MumbleDataHelper = new MumbleDataHelper(brocker, socket);
+        const brocker = new Brocker(WebSocket.SERVER, WebSocket.PORT);
+        const dataHelper: MumbleDataHelper = new MumbleDataHelper(brocker, socket);
 
-            brocker.on("data", (data) => {dataHelper.handleInput(data)});
-            brocker.on('uncaughtException', (err) => { console.log(err); });
-            brocker.on('error', (err) => { console.log(err); });
+        brocker.on("data", (data) => {dataHelper.handleInput(data)});
+        brocker.on('uncaughtException', (err) => { console.log(err); });
+        brocker.on('error', (err) => { console.log(err); });
 
-            socket.on('message', (data) =>  brocker.repack(data));
-            socket.on('close', () => { brocker.close(); });
+        socket.on('message', (data) =>  brocker.repack(data));
+        socket.on('close', () => { brocker.close(); });
     }
 
     private handleHelperConnection(ws: ws) {
         this.socketStatus.helperAlive = true;
-        ws.on('pong', () => { this.socketStatus.helperAlive = true; });
+        ws.on('pong', () => {
+;             this.socketStatus.helperAlive = true; 
+        });
         //TODO!
         ws.on('message', (data) =>  {
             const message = JSON.parse(data.toString());
