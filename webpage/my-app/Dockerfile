@@ -8,11 +8,11 @@ WORKDIR /my-app
 ENV PATH /my-app/node_modules/.bin:$PATH
 
 # install and cache app dependencies
-RUN npm install serve@11.3.0 -g --verbose
-RUN npm install react-scripts@3.4.0 -g --verbose
+RUN yarn global add serve@11.3.0
+RUN yarn global add react-scripts@3.4.0
 
 COPY webpage/my-app/package.json ./package.json
-RUN npm install --silent
+RUN yarn install
 COPY webpage/my-app/  ./
 RUN npm run build
 
