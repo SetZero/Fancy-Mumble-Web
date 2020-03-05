@@ -11,9 +11,9 @@ ENV PATH /my-app/node_modules/.bin:$PATH
 RUN npm install serve@11.3.0 -g --silent
 RUN npm install react-scripts@3.4.0 -g --silent
 
-COPY package.json ./package.json
+COPY webpage/my-app/package.json ./package.json
 RUN npm install --silent
-COPY . ./
+COPY webpage/my-app/  ./
 RUN npm run build
 
 # start app
