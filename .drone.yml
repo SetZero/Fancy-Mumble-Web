@@ -1,18 +1,17 @@
 kind: pipeline
-type: kubernetes
+type: docker
 name: default
 
 steps:
-- name: docker
-  image: fancy-mumble
+- name: publish
+  image: plugins/docker
   settings:
-    auto_tag: false
     username:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    repo:
-      from_secret: docker_repo
+    repo: fancy-mumble
+    tags: latest
     registry:
       from_secret: docker_registry
     dockerfile: webpage/my-app/Dockerfile
