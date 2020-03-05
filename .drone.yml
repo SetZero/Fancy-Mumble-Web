@@ -4,7 +4,7 @@ name: default
 
 steps:
 - name: docker
-  image: plugins/docker
+  image: fancy-mumble
   settings:
     auto_tag: true
     username:
