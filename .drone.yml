@@ -16,9 +16,3 @@ steps:
     registry:
       from_secret: docker_registry
     dockerfile: webpage/my-app/Dockerfile
-
-trigger:
-  event:
-  - promote
-  target:
-  - production
