@@ -11,7 +11,9 @@ steps:
     password:
       from_secret: docker_password
     repo: fancy-mumble
-    tags: latest
+    tags:
+      - latest
+      - 0.0.1
     registry:
       from_secret: docker_registry
     dockerfile: webpage/my-app/Dockerfile
