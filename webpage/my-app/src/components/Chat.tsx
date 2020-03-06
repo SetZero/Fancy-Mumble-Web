@@ -43,7 +43,7 @@ export class Chat extends React.Component<ChatProps, ChatState> {
 
   connect(host: string, user: string) {
     this.mumbleConnection = new Mumble(host, user);
-    this.helperConnection = new WebSocketClient(host + "helper", "" as string, true);
+    this.helperConnection = new WebSocketClient(host + "ws/helper", "" as string, true);
     this.messageParser.$helperConnection = this.helperConnection;
 
     this.mumbleConnection.serverConfigEvent.on((e) => {

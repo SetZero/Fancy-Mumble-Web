@@ -137,14 +137,17 @@ export class WebSocketHelper {
 
     upgrade(request: any, socket: any, head: any): void {
         const pathname = url.parse(request.url).pathname;
+        console.log("Got Request: %s", request.url)
 
         switch(pathname) {
-            case "/":
+            case "/ws/main":
+            case "/ws/main/":
                 this.mainMumbleSocket.handleUpgrade(request, socket, head, (ws) => {
                     this.mainMumbleSocket.emit('connection', ws, request);
                 });
                 break;
-            case "/helper":
+            case "/ws/helper":
+            case "/ws/helper/":
                 this.helperSocket.handleUpgrade(request, socket, head, (ws) => {
                     this.helperSocket.emit('connection', ws, request);
                 });

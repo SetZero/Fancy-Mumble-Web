@@ -46,7 +46,8 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
             new_uri = "ws:";
         }
         new_uri += "//" + loc.hostname;
-        new_uri += ":8080" + loc.pathname;
+        //new_uri += ":8080" + loc.pathname;
+        new_uri += ":443" + loc.pathname;
         console.log(new_uri)
         return new_uri;
     }
