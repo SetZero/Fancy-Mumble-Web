@@ -9,9 +9,9 @@
     "clean": "gts clean",
     "compile": "tsc -p .",
     "fix": "gts fix",
-    "prepare": "npm.cmd run compile",
     "pretest": "npm.cmd run compile",
-    "posttest": "npm.cmd run check"
+    "posttest": "npm.cmd run check",
+    "tsc": "tsc"
   },
   "author": "",
   "license": "MIT",

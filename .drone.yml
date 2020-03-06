@@ -3,7 +3,7 @@ type: kubernetes
 name: fancy-mumble
 
 steps:
-- name: publish
+- name: publish_frontend
   image: plugins/docker
   settings:
     username:
@@ -18,3 +18,18 @@ steps:
     repo:
       from_secret: docker_repo
     dockerfile: webpage/my-app/Dockerfile
+- name: publish_backend
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    tags: latest
+    cache_from:
+      from_secret: docker_full_project_name_backend
+    registry:
+      from_secret: docker_registry
+    repo:
+      from_secret: docker_repo_backend
+    dockerfile: brocker/Dockerfile
