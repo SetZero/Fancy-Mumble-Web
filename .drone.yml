@@ -10,9 +10,9 @@ steps:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    tags:
-      - latest
-      - 0.0.1
+    tags: latest
+    cache_from:
+      from_secret: docker_full_project_name
     registry:
       from_secret: docker_registry
     repo:
