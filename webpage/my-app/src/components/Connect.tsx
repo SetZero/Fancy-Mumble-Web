@@ -46,7 +46,6 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
             new_uri = "ws:";
         }
         new_uri += "//" + loc.hostname;
-        //new_uri += ":8080" + loc.pathname;
         new_uri += ":443" + loc.pathname;
         console.log(new_uri)
         return new_uri;
@@ -66,6 +65,7 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
         event.preventDefault();
 
         this.hideElement('chatWrapper');
+        this.hideElement('page-info');
         this.showElement('login-spinner', 'inline-block');
         ReactDOM.render(<Chat ref={this.chatRef}></Chat>, document.getElementById('chatWrapper'));
         this.chatRef.current?.connect(this.buildWebSocketURI(), this.state.username);

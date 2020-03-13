@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css?family=Amatic+SC:700&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Courgette&display=swap');
+
+$main-color: #282c34;
+$secondary-color: #6c757d;
+$light-secondary-color: #cfd4d8;
+$dark-secondary-color: #2b2f33;
+$darker-secondary-color: #030303;
 
 :root {
   --main-color: #282c34;
@@ -12,18 +18,57 @@ input[type="checkbox"] {
   background-color: var(--secondary-color);
 }
 
+.btn-outline-secondary {
+  background-color: $main-color;
+}
+
 html, body {
   height: 100%;
 }
 
-.App, #root {
+.App, #root, #wrapper {
   height: 100%;
 }
 
-.App-header {
-  background-color: var(--main-color);
-  height: 100%;
+#wrapper {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(40,44,52, 0.5);
+  backdrop-filter: blur(20px);
+
   color: white;
+
+  #footer {
+    text-align:  right;
+    padding: 10px;
+
+    a {
+      color: $light-secondary-color;
+      padding-left: 10px;
+    }
+  }
+}
+
+.bg-image {
+  background: url("./images/bg.webp") border-box padding-box;
+
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+#root {
+  flex-grow: 1;
+}
+
+.App-header {
+  height: 100%;
 }
 
 #login-title {
@@ -33,7 +78,7 @@ html, body {
   margin-bottom: 20px;
   font-size: 40pt;
   text-align: center;
-  font-family: 'Amatic SC', cursive;
+  font-family: 'Courgette', cursive;
 }
 
 .center-class {
@@ -116,4 +161,27 @@ html, body {
 
 .channel-user-info {
   padding: 10px;
+}
+
+#page-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  background-color: $light-secondary-color;
+  color: $dark-secondary-color;
+
+  .text-block {
+    flex-grow: 1;
+    margin: 20px;
+
+
+    h2 {
+      text-align: center;
+    }
+    p {
+      max-width: 800px;
+    }
+  }
 }
