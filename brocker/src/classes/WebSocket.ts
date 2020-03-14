@@ -129,6 +129,7 @@ export class WebSocketHelper {
             if(err) {
                 console.log("Error on write: ", err);
             } else {
+                console.log("Wrote file to: %s", this.dir.name);
                 const filename = message.protocol + "//" + message.host + ":" + WebSocketHelper.PUBLIC_PORT + "/" + path.join(WebSocketHelper.BASEPATH, path.basename(tmpobj.name));
                 console.log(filename);
                 ws.send(JSON.stringify({messageType: message.messageType, payload: filename, timestamp: message.timestamp}));
