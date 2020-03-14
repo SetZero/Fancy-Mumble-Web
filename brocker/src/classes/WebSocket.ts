@@ -21,6 +21,7 @@ enum WebSocketTypes {
 }
 
 export class WebSocketHelper {
+    private static readonly PUBLIC_PORT: number = Number(process.env.PUBLIC_PORT) || 443;
     private static readonly PORT: number = Number(process.env.MUMBLE_PORT) || 64738;
     private static readonly SERVER: string  = process.env.MUMBLE_SERVER || "nooblounge.net";
     private static readonly BASEPATH: string  = process.env.MUMBLE_SERVER_BASEPATH || "mmbl";
@@ -128,7 +129,7 @@ export class WebSocketHelper {
             if(err) {
                 console.log("Error on write: ", err);
             } else {
-                const filename = message.protocol + "//" + message.host + ":" + this.httpServerPort + "/" + path.join(WebSocketHelper.BASEPATH, path.basename(tmpobj.name));
+                const filename = message.protocol + "//" + message.host + ":" + WebSocketHelper.PUBLIC_PORT + "/" + path.join(WebSocketHelper.BASEPATH, path.basename(tmpobj.name));
                 console.log(filename);
                 ws.send(JSON.stringify({messageType: message.messageType, payload: filename, timestamp: message.timestamp}));
             }

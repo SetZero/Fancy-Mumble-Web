@@ -3,6 +3,18 @@ type: kubernetes
 name: fancy-mumble
 
 steps:
+- name: build_dev_frontend
+  image: plugins/docker
+  settings:
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    tags: latest
+    registry: docker.magical.rocks
+    cache_from: docker.magical.rocks/dev-fancy-mumble:latest
+    repo: docker.magical.rocks/dev-fancy-mumble
+    dockerfile: webpage/my-app/Dev.Dockerfile
 - name: publish_frontend
   image: plugins/docker
   settings:

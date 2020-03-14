@@ -66,6 +66,7 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
 
         this.hideElement('chatWrapper');
         this.hideElement('page-info');
+        this.hideElement('footer');
         this.showElement('login-spinner', 'inline-block');
         ReactDOM.render(<Chat ref={this.chatRef}></Chat>, document.getElementById('chatWrapper'));
         this.chatRef.current?.connect(this.buildWebSocketURI(), this.state.username);
@@ -102,11 +103,7 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
             this.hideElement('login-spinner');
             const loginElement = document.getElementById('login-error-viewer');
             ReactDOM.render(<Alert variant="danger">{e}</Alert>, loginElement);
-        })
-        //<Chat ref={this.chatRef}></Chat>
-        //ReactDOM.render(<Chat ref={this.chatRef}></Chat>, this.wrapper);
-        //this.wrapper.current?.insertAdjacentElement('afterbegin', <Chat ref={this.chatRef}></Chat>));
-        //this.wrapper.current?.insertBefore(<Chat ref={this.chatRef}></Chat>)
+        });
     }
 
     private connectWithPredefined(event: React.MouseEvent<any>) {
