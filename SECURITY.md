@@ -15,7 +15,7 @@ If you find any issue in **stable** or **master** please report them!
 ## Reporting a Vulnerability
 
 Please report any non-critical security issues in a ticket. If you find a cirital error, which can cause a security breach or denial of service, please contact me directly 
-([@SetZero](https://github.com/SetZero)). 
+([@SetZero](https://github.com/SetZero)) or open a draft security advisory. 
 
 Please write the exact steps to reproduce the vulnerability including (if necessary) your environment and possible outcomes of the issue.
 
