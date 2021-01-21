@@ -6,7 +6,7 @@ import Card from 'react-bootstrap/Card';
 import ReactDOM from "react-dom";
 
 export class ChatMessageParser {
-    private static readonly codeBlock: RegExp = /(```([A-Za-z]+)?\n?(.*?)\n?```)/;
+    private static readonly codeBlock: RegExp = /(```([A-Za-z]+)?\n?((?:.|\n)*?)\n?```)/;
     private helperConnection: WebSocketClient<string> | undefined;
     private eventMap = new Map<number, HTMLElement | React.RefObject<HTMLElement>>();
 
@@ -71,6 +71,7 @@ export class ChatMessageParser {
     }
 
     parse(message: string) {
+        message = message.replace(/<br\s*[\/]?>/gi, "\n");
         let insertRef: React.RefObject<HTMLDivElement> = React.createRef();
         var tmp = document.createElement("DIV");
         tmp.innerHTML = DOMPurify.sanitize(message);
@@ -86,7 +87,7 @@ export class ChatMessageParser {
             let replace = (<SyntaxHighlighter lang={language}>{content}</SyntaxHighlighter>);
             return replace;
         }
-        return ((<div ref={insertRef} dangerouslySetInnerHTML={{__html: tmp.innerHTML}}></div>));
+        return (<div ref={insertRef} dangerouslySetInnerHTML={{__html: tmp.innerHTML}}></div>);
     }
 
     pasteListener(event: React.ClipboardEvent<HTMLDivElement>, self: ChatMessageParser) {

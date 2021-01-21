@@ -13,6 +13,7 @@ import ContentEditable, { ContentEditableEvent }  from 'react-contenteditable';
 import { User } from '../classes/network/User';
 import { ChatMessageParser } from './chat/ChatMessageParser';
 import { WebSocketClient } from '../classes/WebSocketClient';
+import { Screen } from './Screen';
 
 interface ChatProps {
 }
@@ -127,6 +128,9 @@ export class Chat extends React.Component<ChatProps, ChatState> {
   render() {
     return (
       <Container fluid={true} className="h-100">
+        <Row className="justify-content-md-center h-100">
+          <Screen></Screen>
+        </Row>
         <Row className="justify-content-md-center h-100">
           <Col xs lg="4" id="sidebar">
             <ChannelViewer ref={this.channelViewerRef}></ChannelViewer>

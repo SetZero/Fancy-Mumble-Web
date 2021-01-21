@@ -39,14 +39,15 @@ export class Connect extends React.Component<ConnectProps, ConnectState> {
     }
 
     private buildWebSocketURI() {
-        let loc = window.location, new_uri;
+        /*let loc = window.location, new_uri;
         if (loc.protocol === "https:") {
             new_uri = "wss:";
         } else {
             new_uri = "ws:";
         }
         new_uri += "//" + loc.hostname;
-        new_uri += ":443" + loc.pathname;
+        new_uri += ":443" + loc.pathname;*/
+        let new_uri = "wss://mumble.magical.rocks:443/"
         console.log(new_uri)
         return new_uri;
     }

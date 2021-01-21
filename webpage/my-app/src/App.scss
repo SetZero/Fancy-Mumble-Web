@@ -155,12 +155,23 @@ html, body {
 }
 
 .channel-info {
+  cursor: pointer;
   font-weight: bolder;
   padding: 5px;
 }
 
 .channel-user-info {
   padding: 10px;
+}
+
+.display {
+  display: block !important;
+}
+
+.videoFeed {
+  display: none;
+  width: 100%;
+  background-color: #000;
 }
 
 #page-info {
